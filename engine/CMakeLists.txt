@@ -11,6 +11,7 @@ add_library(novel_engine
     narrative/ExpressionEvaluator.cpp
     platform/ConsoleBackend.cpp
     platform/SdlBackend.cpp
+    platform/SdlMenuUI.cpp
     script/Lexer.cpp
     script/Parser.cpp
 )

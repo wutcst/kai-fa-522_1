@@ -69,8 +69,7 @@ int main(int argc, char* argv[]) {
             // NewGame
             try {
                 novel::Engine engine(std::move(backend));
-                engine.load_script_file(content_file(content_root, "scripts/world.rpy"));
-                engine.load_script_file(content_file(content_root, "scripts/story.rpy"));
+                engine.load_script_directory(content_file(content_root, "scripts"));
                 engine.run("start");
                 break;  // Game completed normally
             } catch (const std::runtime_error& e) {

@@ -4,7 +4,10 @@
 #include "engine/narrative/Executor.hpp"
 #include "engine/narrative/ExpressionEvaluator.hpp"
 
+#include <algorithm>
+#include <filesystem>
 #include <stdexcept>
+#include <vector>
 
 namespace novel {
 
@@ -15,6 +18,20 @@ Engine::Engine(std::unique_ptr<platform::IBackend> backend)
 
 void Engine::load_script_file(const std::string& path) {
     apply_module(core::ScriptLoader::load_file(path));
+}
+
+void Engine::load_script_directory(const std::string& dir_path) {
+    namespace fs = std::filesystem;
+    std::vector<std::string> files;
+    for (const auto& entry : fs::directory_iterator(dir_path)) {
+        if (entry.is_regular_file() && entry.path().extension() == ".rpy") {
+            files.push_back(entry.path().string());
+        }
+    }
+    std::sort(files.begin(), files.end());
+    for (const auto& file : files) {
+        load_script_file(file);
+    }
 }
 
 void Engine::load_script_source(const std::string& source, const std::string& name) {

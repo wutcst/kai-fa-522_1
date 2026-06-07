@@ -19,6 +19,7 @@ public:
     explicit Engine(std::unique_ptr<platform::IBackend> backend);
 
     void load_script_file(const std::string& path);
+    void load_script_directory(const std::string& dir_path);
     void load_script_source(const std::string& source, const std::string& name = "<script>");
     void bootstrap();
     void run(const std::string& entry_label = "start");
