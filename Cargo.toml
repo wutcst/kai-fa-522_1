@@ -1,0 +1,9 @@
+[package]
+name = "zuul"
+version = "1.0.0"
+edition = "2021"
+description = "World of Zuul - a simple text adventure game"
+
+[[bin]]
+name = "zuul"
+path = "src/main.rs"
