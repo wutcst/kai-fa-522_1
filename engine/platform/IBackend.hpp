@@ -1,5 +1,7 @@
 #pragma once
 
+#include "engine/platform/GameUI.hpp"
+
 #include <string>
 #include <vector>
 
@@ -12,6 +14,18 @@ public:
 
     virtual bool init() = 0;
     virtual void shutdown() = 0;
+
+    /// Show main menu and return selected action. Blocks until user chooses.
+    virtual MenuAction show_main_menu() = 0;
+
+    /// Show settings screen. Blocks until user closes it.
+    virtual void show_settings(GameSettings& settings) = 0;
+
+    /// Show pause menu (in-game). Blocks until user chooses.
+    virtual PauseAction show_pause_menu() = 0;
+
+    /// Apply current game settings to backend (volumes, fullscreen, etc.)
+    virtual void apply_settings(const GameSettings& settings) = 0;
 
     /// Display narrative text (dialogue/narration). Blocks until player advances.
     virtual void say(const std::string& speaker, const std::string& text) = 0;

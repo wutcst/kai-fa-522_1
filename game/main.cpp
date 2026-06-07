@@ -1,5 +1,6 @@
 #include "engine/Engine.hpp"
 #include "engine/platform/ConsoleBackend.hpp"
+#include "engine/platform/GameUI.hpp"
 #include "engine/platform/SdlBackend.hpp"
 
 #include <filesystem>
@@ -50,12 +51,45 @@ int main(int argc, char* argv[]) {
             backend->init();
         }
 
-        novel::Engine engine(std::move(backend));
+        novel::platform::GameSettings settings;
 
-        engine.load_script_file(content_file(content_root, "scripts/world.rpy"));
-        engine.load_script_file(content_file(content_root, "scripts/story.rpy"));
-        engine.run("start");
+        while (true) {
+            auto action = backend->show_main_menu();
 
+            if (action == novel::platform::MenuAction::Quit) {
+                break;
+            }
+
+            if (action == novel::platform::MenuAction::Settings) {
+                backend->show_settings(settings);
+                backend->apply_settings(settings);
+                continue;
+            }
+
+            // NewGame
+            try {
+                novel::Engine engine(std::move(backend));
+                engine.load_script_file(content_file(content_root, "scripts/world.rpy"));
+                engine.load_script_file(content_file(content_root, "scripts/story.rpy"));
+                engine.run("start");
+                break;  // Game completed normally
+            } catch (const std::runtime_error& e) {
+                if (std::string(e.what()) == "main_menu") {
+                    // Recreate backend for main menu loop
+                    if (use_console) {
+                        backend = std::make_unique<novel::platform::ConsoleBackend>();
+                    } else {
+                        backend = std::make_unique<novel::platform::SdlBackend>(
+                            1280, 720, "Doki Doki Literature Club: After Story",
+                            content_root.string());
+                    }
+                    backend->init();
+                    backend->apply_settings(settings);
+                    continue;
+                }
+                throw;
+            }
+        }
 
     } catch (const std::runtime_error& e) {
         if (std::string(e.what()) == "quit") {

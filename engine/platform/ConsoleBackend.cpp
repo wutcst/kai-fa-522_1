@@ -49,4 +49,29 @@ void ConsoleBackend::stop_music(int /*fadeout_ms*/) {}
 void ConsoleBackend::play_sound(const std::string& /*path*/, bool /*loop*/) {}
 void ConsoleBackend::stop_sound() {}
 
+MenuAction ConsoleBackend::show_main_menu() {
+    std::cout << "\n=== DOKI DOKI LITERATURE CLUB: AFTER STORY ===\n";
+    std::cout << "1. New Game\n2. Settings\n3. Quit\n> " << std::flush;
+    std::string line;
+    std::getline(std::cin, line);
+    if (line == "3") return MenuAction::Quit;
+    if (line == "2") return MenuAction::Settings;
+    return MenuAction::NewGame;
+}
+
+void ConsoleBackend::show_settings(GameSettings& /*settings*/) {
+    std::cout << "[Settings not available in console mode]\n";
+}
+
+PauseAction ConsoleBackend::show_pause_menu() {
+    std::cout << "\n--- PAUSED ---\n1. Resume\n2. Settings\n3. Main Menu\n> " << std::flush;
+    std::string line;
+    std::getline(std::cin, line);
+    if (line == "3") return PauseAction::MainMenu;
+    if (line == "2") return PauseAction::Settings;
+    return PauseAction::Resume;
+}
+
+void ConsoleBackend::apply_settings(const GameSettings& /*settings*/) {}
+
 } // namespace novel::platform

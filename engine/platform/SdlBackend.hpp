@@ -43,6 +43,11 @@ public:
     void play_sound(const std::string& path, bool loop = false) override;
     void stop_sound() override;
 
+    MenuAction show_main_menu() override;
+    void show_settings(GameSettings& settings) override;
+    PauseAction show_pause_menu() override;
+    void apply_settings(const GameSettings& settings) override;
+
 private:
     void render_frame();
     void render_background();
@@ -54,6 +59,16 @@ private:
     std::string resolve_path(const std::string& relative) const;
     SDL_Rect text_wrap_render(const std::string& text, int x, int y, int max_width,
                               SDL_Color color);
+
+    struct Button {
+        SDL_Rect rect;
+        std::string label;
+        bool hovered = false;
+    };
+    bool render_button(Button& btn, TTF_Font* font);
+    void render_slider(int x, int y, int w, int value, bool active);
+    void play_ui_sound(const std::string& name);
+    TTF_Font* font_title_ = nullptr;
 
     int width_;
     int height_;
