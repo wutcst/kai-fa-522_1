@@ -198,7 +198,7 @@ void SdlBackend::render_textbox(const std::string& speaker, const std::string& t
     int text_y = height_ - box_height + 30;
 
     if (!speaker.empty()) {
-        SDL_Color name_color = {255, 182, 193, 255};
+        SDL_Color name_color = {90, 40, 80, 255};
         SDL_Surface* name_surface = TTF_RenderUTF8_Blended(font_, speaker.c_str(), name_color);
         if (name_surface) {
             SDL_Texture* name_tex = SDL_CreateTextureFromSurface(renderer_, name_surface);
@@ -261,7 +261,7 @@ void SdlBackend::render_choices(const std::vector<std::string>& options, int hig
         }
 
         SDL_Color color = (i == highlight) ? SDL_Color{60, 20, 40, 255}
-                                           : SDL_Color{255, 255, 255, 255};
+                                           : SDL_Color{50, 30, 50, 255};
         const std::string label = options[static_cast<std::size_t>(i)];
         SDL_Surface* surface = TTF_RenderUTF8_Blended_Wrapped(
             font_, label.c_str(), color, static_cast<Uint32>(item_w - 40));
