@@ -210,7 +210,7 @@ void SdlBackend::render_textbox(const std::string& speaker, const std::string& t
         }
     }
 
-    SDL_Color text_color = {255, 255, 255, 255};
+    SDL_Color text_color = {20, 20, 20, 255};
     text_wrap_render(text, text_left, text_y, width_ - text_left * 2, text_color);
 }
 
@@ -530,17 +530,17 @@ bool SdlBackend::render_button(Button& btn, TTF_Font* font) {
 
     SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_BLEND);
     if (btn.hovered) {
-        SDL_SetRenderDrawColor(renderer_, 255, 182, 193, 200);
+        SDL_SetRenderDrawColor(renderer_, 255, 120, 150, 240);
     } else {
-        SDL_SetRenderDrawColor(renderer_, 255, 255, 255, 120);
+        SDL_SetRenderDrawColor(renderer_, 30, 20, 40, 200);
     }
     SDL_RenderFillRect(renderer_, &btn.rect);
 
-    SDL_SetRenderDrawColor(renderer_, 255, 255, 255, 220);
+    SDL_SetRenderDrawColor(renderer_, 255, 200, 210, 200);
     SDL_RenderDrawRect(renderer_, &btn.rect);
 
-    SDL_Color text_color = btn.hovered ? SDL_Color{60, 20, 40, 255}
-                                       : SDL_Color{255, 255, 255, 255};
+    SDL_Color text_color = btn.hovered ? SDL_Color{255, 255, 255, 255}
+                                       : SDL_Color{255, 220, 230, 255};
     SDL_Surface* surface = TTF_RenderUTF8_Blended(font, btn.label.c_str(), text_color);
     if (surface) {
         SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer_, surface);
@@ -583,20 +583,58 @@ void SdlBackend::render_slider(int x, int y, int w, int value, bool active) {
 // ─── Main Menu ───────────────────────────────────────────────────────────────
 
 MenuAction SdlBackend::show_main_menu() {
-    SDL_Texture* bg_tex = load_texture("gui/main_menu.png");
+    SDL_Texture* bg_tex = load_texture("gui/menu_bg.png");
     SDL_Texture* overlay_tex = load_texture("gui/overlay/main_menu.png");
     SDL_Texture* logo_tex = load_texture("gui/logo.png");
 
-    const int btn_w = 220;
-    const int btn_h = 50;
-    const int btn_spacing = 16;
-    const int btn_x = width_ - btn_w - 80;
-    const int btn_start_y = height_ / 2;
+    // DDLC original layout (1280x720 reference):
+    //   Yuri:    xcenter 600, ycenter 335, zoom 0.60
+    //   Natsuki: xcenter 750, ycenter 385, zoom 0.58
+    //   Sayori:  xcenter 510, ycenter 500, zoom 0.68
+    //   Monika:  xcenter 1000, ycenter 640, zoom 1.00
+    // Layer order: bg → Yuri → Natsuki → overlay → Sayori → Monika → logo → buttons
+
+    struct CharDef { const char* path; float xcenter; float ycenter; float zoom; };
+    CharDef char_defs[] = {
+        {"gui/menu_art_y.png", 600.0f / 1280, 335.0f / 720, 0.60f},
+        {"gui/menu_art_n.png", 750.0f / 1280, 385.0f / 720, 0.58f},
+    };
+    CharDef char_front[] = {
+        {"gui/menu_art_s.png", 510.0f / 1280, 500.0f / 720, 0.68f},
+        {"gui/menu_art_m.png", 1000.0f / 1280, 640.0f / 720, 1.00f},
+    };
+
+    SDL_Texture* back_chars[2] = {
+        load_texture(char_defs[0].path),
+        load_texture(char_defs[1].path),
+    };
+    SDL_Texture* front_chars[2] = {
+        load_texture(char_front[0].path),
+        load_texture(char_front[1].path),
+    };
+
+    const int btn_w = 200;
+    const int btn_h = 44;
+    const int btn_spacing = 12;
+    const int btn_x = 60;
+    const int btn_start_y = height_ / 2 + 40;
 
     Button buttons[3];
     buttons[0] = {{btn_x, btn_start_y, btn_w, btn_h}, "New Game"};
     buttons[1] = {{btn_x, btn_start_y + btn_h + btn_spacing, btn_w, btn_h}, "Settings"};
     buttons[2] = {{btn_x, btn_start_y + (btn_h + btn_spacing) * 2, btn_w, btn_h}, "Quit"};
+
+    auto draw_char = [&](SDL_Texture* tex, float xc, float yc, float zoom) {
+        if (!tex) return;
+        int tw, th;
+        SDL_QueryTexture(tex, nullptr, nullptr, &tw, &th);
+        int draw_w = static_cast<int>(tw * zoom);
+        int draw_h = static_cast<int>(th * zoom);
+        int dx = static_cast<int>(xc * width_) - draw_w / 2;
+        int dy = static_cast<int>(yc * height_) - draw_h / 2;
+        SDL_Rect dst = {dx, dy, draw_w, draw_h};
+        SDL_RenderCopy(renderer_, tex, nullptr, &dst);
+    };
 
     bool clicked_last_frame = false;
 
@@ -604,29 +642,34 @@ MenuAction SdlBackend::show_main_menu() {
         SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 255);
         SDL_RenderClear(renderer_);
 
+        // Layer 1: Background (stretch to fill)
         if (bg_tex) SDL_RenderCopy(renderer_, bg_tex, nullptr, nullptr);
+
+        // Layer 2: Back characters (Yuri, Natsuki)
+        for (int i = 0; i < 2; ++i) {
+            draw_char(back_chars[i], char_defs[i].xcenter, char_defs[i].ycenter, char_defs[i].zoom);
+        }
+
+        // Layer 3: Right-side navigation overlay
         if (overlay_tex) SDL_RenderCopy(renderer_, overlay_tex, nullptr, nullptr);
 
+        // Layer 4: Front characters (Sayori, Monika)
+        for (int i = 0; i < 2; ++i) {
+            draw_char(front_chars[i], char_front[i].xcenter, char_front[i].ycenter, char_front[i].zoom);
+        }
+
+        // Layer 5: Logo (top-left)
         if (logo_tex) {
             int lw, lh;
             SDL_QueryTexture(logo_tex, nullptr, nullptr, &lw, &lh);
-            float scale = 380.0f / static_cast<float>(lw);
-            SDL_Rect logo_dst = {(width_ - static_cast<int>(lw * scale)) / 2, 40,
-                                 static_cast<int>(lw * scale), static_cast<int>(lh * scale)};
+            float scale = 240.0f / static_cast<float>(lw);
+            int logo_draw_w = static_cast<int>(lw * scale);
+            int logo_draw_h = static_cast<int>(lh * scale);
+            SDL_Rect logo_dst = {40, 24, logo_draw_w, logo_draw_h};
             SDL_RenderCopy(renderer_, logo_tex, nullptr, &logo_dst);
         }
 
-        // Subtitle
-        SDL_Color subtitle_color = {255, 255, 255, 200};
-        SDL_Surface* sub_surf = TTF_RenderUTF8_Blended(font_, "After Story", subtitle_color);
-        if (sub_surf) {
-            SDL_Texture* sub_tex = SDL_CreateTextureFromSurface(renderer_, sub_surf);
-            SDL_Rect sub_dst = {(width_ - sub_surf->w) / 2, 200, sub_surf->w, sub_surf->h};
-            SDL_RenderCopy(renderer_, sub_tex, nullptr, &sub_dst);
-            SDL_DestroyTexture(sub_tex);
-            SDL_FreeSurface(sub_surf);
-        }
-
+        // Layer 6: Buttons
         for (auto& btn : buttons) {
             render_button(btn, font_);
         }
