@@ -1,4 +1,4 @@
-# World definition for World of Zuul
+# World definition - rooms and initial state
 
 room outside:
     description "outside the main entrance of the university"
@@ -26,3 +26,5 @@ room office:
 default start_room = "outside"
 default visited_theater = false
 default visited_lab = false
+default visited_pub = false
+default player_name = "Player"

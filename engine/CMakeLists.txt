@@ -10,6 +10,7 @@ add_library(novel_engine
     narrative/Executor.cpp
     narrative/ExpressionEvaluator.cpp
     platform/ConsoleBackend.cpp
+    platform/SdlBackend.cpp
     script/Lexer.cpp
     script/Parser.cpp
 )
@@ -22,3 +23,10 @@ target_include_directories(novel_engine
 )
 
 target_compile_features(novel_engine PUBLIC cxx_std_17)
+
+target_link_libraries(novel_engine
+    PUBLIC
+        SDL2::SDL2-static
+        SDL2_image::SDL2_image-static
+        SDL2_ttf::SDL2_ttf-static
+)

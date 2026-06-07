@@ -4,8 +4,15 @@
 
 namespace novel::platform {
 
-void ConsoleBackend::say(const std::string& text) {
-    std::cout << text << '\n';
+bool ConsoleBackend::init() { return true; }
+void ConsoleBackend::shutdown() {}
+
+void ConsoleBackend::say(const std::string& speaker, const std::string& text) {
+    if (!speaker.empty()) {
+        std::cout << speaker << ": " << text << '\n';
+    } else {
+        std::cout << text << '\n';
+    }
 }
 
 int ConsoleBackend::choose(const std::vector<std::string>& options) {
@@ -31,6 +38,13 @@ int ConsoleBackend::choose(const std::vector<std::string>& options) {
     }
 }
 
+void ConsoleBackend::show_background(const std::string& /*image_path*/) {}
+void ConsoleBackend::show_sprite(const std::string& /*tag*/, const std::string& /*image_path*/,
+                                  const std::string& /*position*/) {}
+void ConsoleBackend::hide_sprite(const std::string& /*tag*/) {}
 void ConsoleBackend::on_scene_changed(const std::string& /*room_id*/) {}
+void ConsoleBackend::play_music(const std::string& /*path*/) {}
+void ConsoleBackend::stop_music() {}
+void ConsoleBackend::play_sound(const std::string& /*path*/) {}
 
 } // namespace novel::platform

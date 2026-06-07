@@ -404,19 +404,94 @@ label end_game:
 
 ---
 
-## 13. 关键字一览
+## 13. 视觉小说语句
+
+### 13.1 背景图 `bg`
+
+设置当前场景的背景图片：
+
+```rpy
+bg "images/bg_outside.png"
+bg "images/bg_theater.png"
+```
+
+路径相对于 `content/` 目录。
+
+### 13.2 显示角色 `show`
+
+在画面上显示角色立绘：
+
+```rpy
+show guide "images/char_guide.png" at center
+show professor "images/char_professor.png" at left
+show student "images/char_student.png" at right
+```
+
+- 第一个参数为角色标签（tag），用于后续引用和隐藏
+- 第二个参数为图片路径
+- `at` 指定位置：`left`、`center`（默认）、`right`
+
+### 13.3 隐藏角色 `hide`
+
+隐藏已显示的角色立绘：
+
+```rpy
+hide guide
+hide professor
+```
+
+### 13.4 角色对白
+
+角色名后跟字符串作为带说话人名称的对白：
+
+```rpy
+guide "Welcome to the university!"
+professor "Class starts next week."
+barkeep "What'll it be?"
+```
+
+引擎会在对话框中显示角色名（高亮）+ 对白内容。
+
+### 13.5 音频 `play` / `stop`
+
+```rpy
+play music "audio/bgm_campus.ogg"
+play sound "audio/sfx_door.wav"
+stop music
+```
+
+### 13.6 示例流程
+
+```rpy
+label talk_to_guide:
+    show guide "images/char_guide.png" at center
+    guide "Hey there! Need directions?"
+    menu:
+        "Where is the lab?":
+            guide "Head south from the main entrance."
+        "No thanks":
+            guide "Enjoy your walk!"
+    hide guide
+    return
+```
+
+---
+
+## 14. 关键字一览
 
 ```
 room  description  exit  default  define
 label  menu  if  elif  else
 jump  call  return
 scene  go
+bg  show  hide  at
+play  stop  music  sound
 and  or  not  true  false
 ```
 
 ---
 
-## 14. 常见错误
+## 15. 常见错误
 
 | 错误信息 | 原因 |
 |----------|------|

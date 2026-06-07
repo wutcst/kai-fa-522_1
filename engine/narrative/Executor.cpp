@@ -52,7 +52,7 @@ const script::Label* Executor::find_label(const std::string& name) const {
 
 bool Executor::execute_statement(const script::Stmt& stmt, std::vector<Frame>& frames) {
     if (const auto* say = dynamic_cast<const script::SayStmt*>(&stmt)) {
-        backend_.say(evaluate_text(*say->text));
+        backend_.say("", evaluate_text(*say->text));
         return true;
     }
 
@@ -106,6 +106,41 @@ bool Executor::execute_statement(const script::Stmt& stmt, std::vector<Frame>& f
     if (const auto* go = dynamic_cast<const script::GoStmt*>(&stmt)) {
         const std::string direction = evaluate_text(*go->direction);
         api_.call("go", {core::Value::from_string(direction)});
+        return true;
+    }
+
+    if (const auto* bg = dynamic_cast<const script::BgStmt*>(&stmt)) {
+        backend_.show_background(bg->image_path);
+        return true;
+    }
+
+    if (const auto* show = dynamic_cast<const script::ShowStmt*>(&stmt)) {
+        backend_.show_sprite(show->tag, show->image_path, show->position);
+        return true;
+    }
+
+    if (const auto* hide = dynamic_cast<const script::HideStmt*>(&stmt)) {
+        backend_.hide_sprite(hide->tag);
+        return true;
+    }
+
+    if (const auto* play_music = dynamic_cast<const script::PlayMusicStmt*>(&stmt)) {
+        backend_.play_music(play_music->path);
+        return true;
+    }
+
+    if (dynamic_cast<const script::StopMusicStmt*>(&stmt)) {
+        backend_.stop_music();
+        return true;
+    }
+
+    if (const auto* play_sound = dynamic_cast<const script::PlaySoundStmt*>(&stmt)) {
+        backend_.play_sound(play_sound->path);
+        return true;
+    }
+
+    if (const auto* dialogue = dynamic_cast<const script::DialogueStmt*>(&stmt)) {
+        backend_.say(dialogue->speaker, evaluate_text(*dialogue->text));
         return true;
     }
 

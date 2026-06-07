@@ -113,6 +113,50 @@ struct GoStmt : Stmt {
     explicit GoStmt(ExprPtr direction) : direction(std::move(direction)) {}
 };
 
+/// Visual novel: show background image
+struct BgStmt : Stmt {
+    std::string image_path;
+    explicit BgStmt(std::string path) : image_path(std::move(path)) {}
+};
+
+/// Visual novel: show character sprite
+struct ShowStmt : Stmt {
+    std::string tag;
+    std::string image_path;
+    std::string position; // "left", "center", "right"
+    ShowStmt(std::string tag, std::string path, std::string pos = "center")
+        : tag(std::move(tag)), image_path(std::move(path)), position(std::move(pos)) {}
+};
+
+/// Visual novel: hide character sprite
+struct HideStmt : Stmt {
+    std::string tag;
+    explicit HideStmt(std::string tag) : tag(std::move(tag)) {}
+};
+
+/// Visual novel: play music
+struct PlayMusicStmt : Stmt {
+    std::string path;
+    explicit PlayMusicStmt(std::string path) : path(std::move(path)) {}
+};
+
+/// Visual novel: stop music
+struct StopMusicStmt : Stmt {};
+
+/// Visual novel: play sound effect
+struct PlaySoundStmt : Stmt {
+    std::string path;
+    explicit PlaySoundStmt(std::string path) : path(std::move(path)) {}
+};
+
+/// Dialogue with speaker name
+struct DialogueStmt : Stmt {
+    std::string speaker;
+    ExprPtr text;
+    DialogueStmt(std::string speaker, ExprPtr text)
+        : speaker(std::move(speaker)), text(std::move(text)) {}
+};
+
 struct IfBranch {
     ExprPtr condition;
     StmtList body;

@@ -1,0 +1,12 @@
+[submodule "third_party/SDL"]
+	path = third_party/SDL
+	url = https://github.com/libsdl-org/SDL.git
+	branch = release-2.30.x
+[submodule "third_party/SDL_image"]
+	path = third_party/SDL_image
+	url = https://github.com/libsdl-org/SDL_image.git
+	branch = release-2.8.x
+[submodule "third_party/SDL_ttf"]
+	path = third_party/SDL_ttf
+	url = https://github.com/libsdl-org/SDL_ttf.git
+	branch = release-2.22.x

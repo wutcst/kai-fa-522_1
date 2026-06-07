@@ -1,10 +1,14 @@
-# 忽略以下目录中的所有子目录及文件
+# Build artifacts
 /target/
 /build/
 /bin/
 /cmake-build-*/
-/.idea/
 
-# 忽略以下文件
+# IDE
+/.idea/
+/.vscode/
 *.iml
+
+# OS
 .DS_Store
+Thumbs.db

@@ -212,6 +212,57 @@ StmtPtr Parser::parse_statement() {
         throw std::runtime_error("expected direction after go at line " + std::to_string(peek().line));
     }
 
+    if (match_keyword("bg")) {
+        const std::string path = advance().text;
+        return std::make_unique<BgStmt>(path);
+    }
+
+    if (match_keyword("show")) {
+        const std::string tag = advance().text;
+        std::string image_path = tag;
+        std::string position = "center";
+
+        if (check(TokenKind::String) || check(TokenKind::Identifier)) {
+            image_path = advance().text;
+        }
+        if (match_keyword("at")) {
+            position = advance().text;
+        }
+
+        return std::make_unique<ShowStmt>(tag, image_path, position);
+    }
+
+    if (match_keyword("hide")) {
+        const std::string tag = advance().text;
+        return std::make_unique<HideStmt>(tag);
+    }
+
+    if (match_keyword("play")) {
+        if (match_keyword("music")) {
+            const std::string path = advance().text;
+            return std::make_unique<PlayMusicStmt>(path);
+        }
+        if (match_keyword("sound")) {
+            const std::string path = advance().text;
+            return std::make_unique<PlaySoundStmt>(path);
+        }
+        throw std::runtime_error("expected 'music' or 'sound' after play at line " + std::to_string(peek().line));
+    }
+
+    if (match_keyword("stop")) {
+        if (match_keyword("music")) {
+            return std::make_unique<StopMusicStmt>();
+        }
+        throw std::runtime_error("expected 'music' after stop at line " + std::to_string(peek().line));
+    }
+
+    // Dialogue: identifier followed by a string → "speaker" "text"
+    if (check(TokenKind::Identifier) && peek(1).kind == TokenKind::String) {
+        const std::string speaker = advance().text;
+        const std::string raw = advance().text;
+        return std::make_unique<DialogueStmt>(speaker, parse_string_with_interpolation(raw));
+    }
+
     throw std::runtime_error("unexpected statement at line " + std::to_string(peek().line));
 }
 
