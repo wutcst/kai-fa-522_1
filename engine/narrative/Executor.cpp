@@ -152,7 +152,6 @@ bool Executor::execute_statement(const script::Stmt& stmt, std::vector<Frame>& f
                 break;
             }
         }
-        frames.back().index += 1;
         frames.push_back(Frame{body, 0});
         return false;
     }
@@ -165,7 +164,6 @@ bool Executor::execute_statement(const script::Stmt& stmt, std::vector<Frame>& f
         }
 
         const int selected = backend_.choose(captions);
-        frames.back().index += 1;
         frames.push_back(Frame{&menu->choices[static_cast<std::size_t>(selected)].body, 0});
         return false;
     }

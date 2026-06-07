@@ -41,7 +41,7 @@ int main(int argc, char* argv[]) {
             backend = std::make_unique<novel::platform::ConsoleBackend>();
         } else {
             backend = std::make_unique<novel::platform::SdlBackend>(
-                1280, 720, "World of Zuul - Visual Novel", content_root.string());
+                1280, 720, "Doki Doki Literature Club: After Story", content_root.string());
         }
 
         if (!backend->init()) {
@@ -55,6 +55,7 @@ int main(int argc, char* argv[]) {
         engine.load_script_file(content_file(content_root, "scripts/world.rpy"));
         engine.load_script_file(content_file(content_root, "scripts/story.rpy"));
         engine.run("start");
+
 
     } catch (const std::runtime_error& e) {
         if (std::string(e.what()) == "quit") {

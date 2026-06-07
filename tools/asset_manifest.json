@@ -1,0 +1,30 @@
+{
+    "backgrounds": [
+        {"src": "images/bg/residential.png", "dst": "images/bg/residential.png"},
+        {"src": "images/bg/class.png",       "dst": "images/bg/class.png"},
+        {"src": "images/bg/corridor.png",    "dst": "images/bg/corridor.png"},
+        {"src": "images/bg/club.png",        "dst": "images/bg/club.png"},
+        {"src": "images/bg/house.png",       "dst": "images/bg/house.png"},
+        {"src": "images/bg/kitchen.png",     "dst": "images/bg/kitchen.png"},
+        {"src": "images/bg/bedroom.png",     "dst": "images/bg/bedroom.png"},
+        {"src": "images/bg/sayori_bedroom.png", "dst": "images/bg/sayori_bedroom.png"},
+        {"src": "images/bg/notebook.png",    "dst": "images/bg/notebook.png"}
+    ],
+    "bgm": [
+        {"src": "audio/bgm/1.ogg",           "dst": "audio/bgm/1.ogg"},
+        {"src": "audio/bgm/2.ogg",           "dst": "audio/bgm/2.ogg"},
+        {"src": "audio/bgm/3.ogg",           "dst": "audio/bgm/3.ogg"},
+        {"src": "audio/bgm/5.ogg",           "dst": "audio/bgm/5.ogg"},
+        {"src": "audio/bgm/10.ogg",          "dst": "audio/bgm/10.ogg"},
+        {"src": "audio/bgm/d.ogg",           "dst": "audio/bgm/d.ogg"},
+        {"src": "audio/bgm/monika-end.ogg",  "dst": "audio/bgm/monika-end.ogg"}
+    ],
+    "sfx": [
+        {"src": "audio/sfx/closet-open.ogg",     "dst": "audio/sfx/closet-open.ogg"},
+        {"src": "audio/sfx/closet-close.ogg",    "dst": "audio/sfx/closet-close.ogg"},
+        {"src": "audio/sfx/pageflip.ogg",        "dst": "audio/sfx/pageflip.ogg"},
+        {"src": "audio/sfx/s_kill_glitch1.ogg",  "dst": "audio/sfx/glitch1.ogg"},
+        {"src": "audio/sfx/glitch1.ogg",         "dst": "audio/sfx/glitch_ambient1.ogg"},
+        {"src": "audio/sfx/glitch2.ogg",         "dst": "audio/sfx/glitch_ambient2.ogg"}
+    ]
+}

@@ -1,64 +1,51 @@
-# World Definition - Hoshimi Academy
+# AfterStory - World Definition
+# A continuation after the "good ending" of Doki Doki Literature Club
 
-room outside:
-    description "at the front gate of Hoshimi Academy"
-    exit east theater
-    exit south lab
-    exit west pub
+room residential:
+    description "on the quiet residential street leading to school"
+    exit east school_corridor
 
-room theater:
-    description "in the large lecture hall"
-    exit west outside
+room school_corridor:
+    description "in the school corridor, the afternoon sun casting long shadows"
+    exit west residential
+    exit north classroom
+    exit east clubroom
 
-room pub:
-    description "inside Cafe Plume, the cozy cafe near campus"
-    exit east outside
+room classroom:
+    description "in your usual classroom, desks neatly arranged"
+    exit south school_corridor
 
-room lab:
-    description "in the computer room"
-    exit north outside
-    exit east office
+room clubroom:
+    description "in the Literature Club room, a few desks pushed together"
+    exit west school_corridor
 
-room office:
-    description "in the Student Council room"
-    exit west lab
+room sayori_house:
+    description "outside Sayori's house, the familiar door before you"
+    exit south residential
 
-default start_room = "outside"
+room mc_bedroom:
+    description "in your bedroom, everything exactly where you left it"
+    exit south residential
 
-# Story progress
+# Game state variables
+default start_room = "clubroom"
+default player_name = "Player"
+
 default day = 1
-default chapter = 1
+default act = 1
 
-# Affection counters
-default kaede_affection = 0
-default ruru_affection = 0
-default kotori_affection = 0
+default sayori_affection = 0
+default natsuki_affection = 0
+default yuri_affection = 0
+default monika_affection = 0
 
-# Scene visit flags
-default visited_theater = false
-default visited_pub = false
-default visited_lab = false
-default visited_office = false
+default poem_written = false
+default noticed_glitch = false
+default heard_static = false
+default saw_monika_shadow = false
+default desk_note_found = false
+default sayori_overslept = false
+default strange_poem_read = false
 
-# Character encounter flags
-default met_kaede = false
-default met_ruru = false
-default met_kotori = false
-
-# Event flags - Kaede route
-default kaede_bento_event = false
-default kaede_umbrella_event = false
-default kaede_late_night_event = false
-default kaede_festival_event = false
-
-# Event flags - Ruru route
-default ruru_bug_event = false
-default ruru_lunch_event = false
-default ruru_game_jam_event = false
-default ruru_all_nighter_event = false
-
-# Event flags - Kotori route
-default kotori_lost_event = false
-default kotori_poem_event = false
-default kotori_rain_event = false
-default kotori_closing_event = false
+default glitch_count = 0
+default reality_cracks = 0
