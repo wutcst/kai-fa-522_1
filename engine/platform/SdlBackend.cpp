@@ -156,8 +156,7 @@ void SdlBackend::render_sprites() {
             x = width_ * 5 / 6 - sprite.w / 2;
         }
 
-        int y = height_ - sprite.h - 150;
-        if (y < 0) y = 0;
+        int y = height_ - sprite.h;
 
         SDL_Rect dst = {x, y, sprite.w, sprite.h};
         SDL_RenderCopy(renderer_, sprite.texture, nullptr, &dst);
@@ -213,33 +212,69 @@ SDL_Rect SdlBackend::text_wrap_render(const std::string& text, int x, int y, int
 }
 
 void SdlBackend::render_choices(const std::vector<std::string>& options, int highlight) {
-    const int box_height = static_cast<int>(options.size()) * 50 + 40;
-    const int box_w = 400;
-    const int box_x = (width_ - box_w) / 2;
-    const int box_y = (height_ - box_height) / 2;
+    const int padding = 24;
+    const int item_spacing = 16;
+    const int max_box_w = width_ * 3 / 4;
+    const int min_box_w = 300;
+    const int text_area_w = max_box_w - padding * 2;
+
+    // First pass: measure each option's wrapped height and find max width needed.
+    std::vector<int> item_heights(options.size(), 0);
+    int total_items_height = 0;
+    int needed_w = min_box_w;
+
+    for (std::size_t i = 0; i < options.size(); ++i) {
+        const std::string label = std::to_string(i + 1) + ". " + options[i];
+        int wrap_w = 0, wrap_h = 0;
+        TTF_SizeUTF8(font_, label.c_str(), &wrap_w, nullptr);
+
+        if (wrap_w <= text_area_w) {
+            TTF_SizeUTF8(font_, label.c_str(), nullptr, &wrap_h);
+        } else {
+            SDL_Surface* tmp = TTF_RenderUTF8_Blended_Wrapped(
+                font_, label.c_str(), SDL_Color{255, 255, 255, 255},
+                static_cast<Uint32>(text_area_w));
+            if (tmp) {
+                wrap_h = tmp->h;
+                SDL_FreeSurface(tmp);
+            }
+        }
+
+        int single_w = std::min(wrap_w, text_area_w) + padding * 2;
+        if (single_w > needed_w) needed_w = single_w;
+        item_heights[i] = wrap_h;
+        total_items_height += wrap_h;
+    }
+
+    int box_w = std::min(needed_w, max_box_w);
+    int box_h = total_items_height + item_spacing * static_cast<int>(options.size() - 1) + padding * 2;
+    int box_x = (width_ - box_w) / 2;
+    int box_y = (height_ - box_h) / 2;
 
     SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_BLEND);
     SDL_SetRenderDrawColor(renderer_, 20, 20, 40, 230);
-    SDL_Rect box = {box_x, box_y, box_w, box_height};
+    SDL_Rect box = {box_x, box_y, box_w, box_h};
     SDL_RenderFillRect(renderer_, &box);
     SDL_SetRenderDrawColor(renderer_, 100, 150, 255, 255);
     SDL_RenderDrawRect(renderer_, &box);
 
-    int item_y = box_y + 20;
+    // Second pass: render each option with wrapping.
+    int item_y = box_y + padding;
     for (int i = 0; i < static_cast<int>(options.size()); ++i) {
         SDL_Color color = (i == highlight) ? SDL_Color{255, 255, 100, 255}
                                            : SDL_Color{200, 200, 200, 255};
 
         const std::string label = std::to_string(i + 1) + ". " + options[static_cast<std::size_t>(i)];
-        SDL_Surface* surface = TTF_RenderUTF8_Blended(font_, label.c_str(), color);
+        SDL_Surface* surface = TTF_RenderUTF8_Blended_Wrapped(
+            font_, label.c_str(), color, static_cast<Uint32>(box_w - padding * 2));
         if (surface) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer_, surface);
-            SDL_Rect dst = {box_x + 30, item_y, surface->w, surface->h};
+            SDL_Rect dst = {box_x + padding, item_y, surface->w, surface->h};
             SDL_RenderCopy(renderer_, tex, nullptr, &dst);
             SDL_DestroyTexture(tex);
             SDL_FreeSurface(surface);
         }
-        item_y += 50;
+        item_y += item_heights[static_cast<std::size_t>(i)] + item_spacing;
     }
 }
 
@@ -311,18 +346,43 @@ int SdlBackend::choose(const std::vector<std::string>& options) {
                 }
             }
             if (event.type == SDL_MOUSEBUTTONDOWN) {
-                int mouse_y = event.button.y;
-                int box_height = static_cast<int>(options.size()) * 50 + 40;
-                int box_y = (height_ - box_height) / 2;
-                int item_y = box_y + 20;
-                for (int i = 0; i < static_cast<int>(options.size()); ++i) {
-                    if (mouse_y >= item_y && mouse_y < item_y + 50) {
-                        int box_x = (width_ - 400) / 2;
-                        if (event.button.x >= box_x && event.button.x < box_x + 400) {
-                            return i;
-                        }
+                const int pad = 24;
+                const int spc = 16;
+                const int max_bw = width_ * 3 / 4;
+                const int min_bw = 300;
+                const int ta_w = max_bw - pad * 2;
+
+                std::vector<int> heights(options.size(), 0);
+                int total_h = 0;
+                int need_w = min_bw;
+                for (std::size_t i = 0; i < options.size(); ++i) {
+                    std::string lbl = std::to_string(i + 1) + ". " + options[i];
+                    int tw = 0, th = 0;
+                    TTF_SizeUTF8(font_, lbl.c_str(), &tw, &th);
+                    if (tw > ta_w) {
+                        SDL_Surface* tmp = TTF_RenderUTF8_Blended_Wrapped(
+                            font_, lbl.c_str(), SDL_Color{255,255,255,255},
+                            static_cast<Uint32>(ta_w));
+                        if (tmp) { th = tmp->h; SDL_FreeSurface(tmp); }
                     }
-                    item_y += 50;
+                    heights[i] = th;
+                    total_h += th;
+                    int sw = std::min(tw, ta_w) + pad * 2;
+                    if (sw > need_w) need_w = sw;
+                }
+                int bw = std::min(need_w, max_bw);
+                int bh = total_h + spc * static_cast<int>(options.size() - 1) + pad * 2;
+                int bx = (width_ - bw) / 2;
+                int by = (height_ - bh) / 2;
+
+                int iy = by + pad;
+                for (int i = 0; i < static_cast<int>(options.size()); ++i) {
+                    int ih = heights[static_cast<std::size_t>(i)];
+                    if (event.button.y >= iy && event.button.y < iy + ih + spc &&
+                        event.button.x >= bx && event.button.x < bx + bw) {
+                        return i;
+                    }
+                    iy += ih + spc;
                 }
             }
         }
@@ -344,8 +404,8 @@ void SdlBackend::show_sprite(const std::string& tag, const std::string& image_pa
     int w = 0, h = 0;
     SDL_QueryTexture(tex, nullptr, nullptr, &w, &h);
 
-    float scale = static_cast<float>(height_ - 160) * 0.8f / static_cast<float>(h);
-    if (scale > 1.0f) scale = 1.0f;
+    float scale = static_cast<float>(height_) / static_cast<float>(h);
+    if (scale > 1.5f) scale = 1.5f;
 
     sprites_[tag] = Sprite{tex, position, static_cast<int>(w * scale), static_cast<int>(h * scale)};
 }
