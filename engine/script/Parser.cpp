@@ -240,20 +240,45 @@ StmtPtr Parser::parse_statement() {
     if (match_keyword("play")) {
         if (match_keyword("music")) {
             const std::string path = advance().text;
-            return std::make_unique<PlayMusicStmt>(path);
+            double fadein = 0.0;
+            double volume = -1.0;
+            bool noloop = false;
+            while (check(TokenKind::Keyword)) {
+                if (match_keyword("fadein")) {
+                    fadein = advance().number;
+                } else if (match_keyword("volume")) {
+                    volume = advance().number;
+                } else if (match_keyword("noloop")) {
+                    noloop = true;
+                } else {
+                    break;
+                }
+            }
+            return std::make_unique<PlayMusicStmt>(path, fadein, noloop, volume);
         }
         if (match_keyword("sound")) {
             const std::string path = advance().text;
-            return std::make_unique<PlaySoundStmt>(path);
+            bool loop = false;
+            if (match_keyword("loop")) {
+                loop = true;
+            }
+            return std::make_unique<PlaySoundStmt>(path, loop);
         }
         throw std::runtime_error("expected 'music' or 'sound' after play at line " + std::to_string(peek().line));
     }
 
     if (match_keyword("stop")) {
         if (match_keyword("music")) {
-            return std::make_unique<StopMusicStmt>();
+            double fadeout = 0.0;
+            if (match_keyword("fadeout")) {
+                fadeout = advance().number;
+            }
+            return std::make_unique<StopMusicStmt>(fadeout);
         }
-        throw std::runtime_error("expected 'music' after stop at line " + std::to_string(peek().line));
+        if (match_keyword("sound")) {
+            return std::make_unique<StopSoundStmt>();
+        }
+        throw std::runtime_error("expected 'music' or 'sound' after stop at line " + std::to_string(peek().line));
     }
 
     // Dialogue: identifier followed by a string → "speaker" "text"

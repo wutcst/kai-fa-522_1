@@ -125,17 +125,24 @@ bool Executor::execute_statement(const script::Stmt& stmt, std::vector<Frame>& f
     }
 
     if (const auto* play_music = dynamic_cast<const script::PlayMusicStmt*>(&stmt)) {
-        backend_.play_music(play_music->path);
+        int fadein_ms = static_cast<int>(play_music->fadein * 1000.0);
+        backend_.play_music(play_music->path, fadein_ms, play_music->noloop, play_music->volume);
         return true;
     }
 
-    if (dynamic_cast<const script::StopMusicStmt*>(&stmt)) {
-        backend_.stop_music();
+    if (const auto* stop_music = dynamic_cast<const script::StopMusicStmt*>(&stmt)) {
+        int fadeout_ms = static_cast<int>(stop_music->fadeout * 1000.0);
+        backend_.stop_music(fadeout_ms);
+        return true;
+    }
+
+    if (dynamic_cast<const script::StopSoundStmt*>(&stmt)) {
+        backend_.stop_sound();
         return true;
     }
 
     if (const auto* play_sound = dynamic_cast<const script::PlaySoundStmt*>(&stmt)) {
-        backend_.play_sound(play_sound->path);
+        backend_.play_sound(play_sound->path, play_sound->loop);
         return true;
     }
 

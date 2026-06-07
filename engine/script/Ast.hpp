@@ -134,19 +134,31 @@ struct HideStmt : Stmt {
     explicit HideStmt(std::string tag) : tag(std::move(tag)) {}
 };
 
-/// Visual novel: play music
+/// Visual novel: play music (looping by default)
 struct PlayMusicStmt : Stmt {
     std::string path;
-    explicit PlayMusicStmt(std::string path) : path(std::move(path)) {}
+    double fadein = 0.0;   // seconds; 0 = no fade
+    double volume = -1.0;  // 0.0–1.0; negative = use current volume
+    bool noloop = false;
+    PlayMusicStmt(std::string path, double fadein = 0.0, bool noloop = false, double volume = -1.0)
+        : path(std::move(path)), fadein(fadein), volume(volume), noloop(noloop) {}
 };
 
 /// Visual novel: stop music
-struct StopMusicStmt : Stmt {};
+struct StopMusicStmt : Stmt {
+    double fadeout = 0.0;  // seconds; 0 = immediate stop
+    explicit StopMusicStmt(double fadeout = 0.0) : fadeout(fadeout) {}
+};
 
-/// Visual novel: play sound effect
+/// Visual novel: stop sound effects
+struct StopSoundStmt : Stmt {};
+
+/// Visual novel: play sound effect (one-shot by default)
 struct PlaySoundStmt : Stmt {
     std::string path;
-    explicit PlaySoundStmt(std::string path) : path(std::move(path)) {}
+    bool loop = false;
+    PlaySoundStmt(std::string path, bool loop = false)
+        : path(std::move(path)), loop(loop) {}
 };
 
 /// Dialogue with speaker name

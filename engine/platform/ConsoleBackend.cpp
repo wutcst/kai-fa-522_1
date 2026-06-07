@@ -43,8 +43,10 @@ void ConsoleBackend::show_sprite(const std::string& /*tag*/, const std::string& 
                                   const std::string& /*position*/) {}
 void ConsoleBackend::hide_sprite(const std::string& /*tag*/) {}
 void ConsoleBackend::on_scene_changed(const std::string& /*room_id*/) {}
-void ConsoleBackend::play_music(const std::string& /*path*/) {}
-void ConsoleBackend::stop_music() {}
-void ConsoleBackend::play_sound(const std::string& /*path*/) {}
+void ConsoleBackend::play_music(const std::string& /*path*/, int /*fadein_ms*/,
+                                bool /*noloop*/, double /*volume*/) {}
+void ConsoleBackend::stop_music(int /*fadeout_ms*/) {}
+void ConsoleBackend::play_sound(const std::string& /*path*/, bool /*loop*/) {}
+void ConsoleBackend::stop_sound() {}
 
 } // namespace novel::platform

@@ -4,6 +4,7 @@
 
 #include <SDL.h>
 #include <SDL_image.h>
+#include <SDL_mixer.h>
 #include <SDL_ttf.h>
 
 #include <string>
@@ -36,9 +37,11 @@ public:
                      const std::string& position) override;
     void hide_sprite(const std::string& tag) override;
     void on_scene_changed(const std::string& room_id) override;
-    void play_music(const std::string& path) override;
-    void stop_music() override;
-    void play_sound(const std::string& path) override;
+    void play_music(const std::string& path, int fadein_ms = 0,
+                    bool noloop = false, double volume = -1.0) override;
+    void stop_music(int fadeout_ms = 0) override;
+    void play_sound(const std::string& path, bool loop = false) override;
+    void stop_sound() override;
 
 private:
     void render_frame();
@@ -65,6 +68,12 @@ private:
     SDL_Texture* background_ = nullptr;
     std::unordered_map<std::string, Sprite> sprites_;
     std::unordered_map<std::string, SDL_Texture*> texture_cache_;
+
+    Mix_Music* current_music_ = nullptr;
+    std::string current_music_path_;
+    std::unordered_map<std::string, Mix_Chunk*> chunk_cache_;
+    int music_volume_ = MIX_MAX_VOLUME;
+    int sfx_volume_ = MIX_MAX_VOLUME;
 
     bool running_ = true;
 };

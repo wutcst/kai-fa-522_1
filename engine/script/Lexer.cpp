@@ -9,11 +9,12 @@ namespace novel::script {
 namespace {
 
 const std::unordered_set<std::string> kKeywords = {
-    "room",     "description", "exit",   "default", "label",  "menu",
-    "if",       "elif",        "else",   "jump",    "call",   "return",
-    "scene",    "go",          "and",    "or",      "not",    "true",
-    "false",    "define",      "bg",     "show",    "hide",   "play",
-    "stop",     "music",       "sound",  "at",
+    "room",     "description", "exit",    "default", "label",   "menu",
+    "if",       "elif",        "else",    "jump",    "call",    "return",
+    "scene",    "go",          "and",     "or",      "not",     "true",
+    "false",    "define",      "bg",      "show",    "hide",    "play",
+    "stop",     "music",       "sound",   "at",      "fadein",  "fadeout",
+    "noloop",   "loop",        "volume",
 };
 
 } // namespace

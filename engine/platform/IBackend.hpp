@@ -35,14 +35,21 @@ public:
     /// Called when scene/room changes.
     virtual void on_scene_changed(const std::string& room_id) = 0;
 
-    /// Play background music (looping).
-    virtual void play_music(const std::string& path) = 0;
+    /// Play background music. Loops unless noloop is true.
+    /// fadein_ms: crossfade duration in milliseconds (0 = instant).
+    /// volume: 0.0–1.0 (negative means keep current volume).
+    virtual void play_music(const std::string& path, int fadein_ms = 0,
+                            bool noloop = false, double volume = -1.0) = 0;
 
     /// Stop background music.
-    virtual void stop_music() = 0;
+    /// fadeout_ms: fade-out duration in milliseconds (0 = immediate).
+    virtual void stop_music(int fadeout_ms = 0) = 0;
 
-    /// Play a sound effect (one-shot).
-    virtual void play_sound(const std::string& path) = 0;
+    /// Play a sound effect. One-shot unless loop is true.
+    virtual void play_sound(const std::string& path, bool loop = false) = 0;
+
+    /// Stop all sound effect channels.
+    virtual void stop_sound() = 0;
 };
 
 } // namespace novel::platform

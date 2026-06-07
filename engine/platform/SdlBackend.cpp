@@ -1,5 +1,7 @@
 #include "engine/platform/SdlBackend.hpp"
 
+#include <SDL_mixer.h>
+
 #include <algorithm>
 #include <filesystem>
 #include <iostream>
@@ -28,6 +30,12 @@ bool SdlBackend::init() {
         std::cerr << "TTF_Init failed: " << TTF_GetError() << '\n';
         return false;
     }
+
+    if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
+        std::cerr << "Mix_OpenAudio failed: " << Mix_GetError() << '\n';
+        return false;
+    }
+    Mix_AllocateChannels(16);
 
     window_ = SDL_CreateWindow(title_.c_str(), SDL_WINDOWPOS_CENTERED,
                                SDL_WINDOWPOS_CENTERED, width_, height_,
@@ -67,6 +75,18 @@ bool SdlBackend::init() {
 }
 
 void SdlBackend::shutdown() {
+    Mix_HaltChannel(-1);
+    if (current_music_) {
+        Mix_HaltMusic();
+        Mix_FreeMusic(current_music_);
+        current_music_ = nullptr;
+    }
+    for (auto& [_, chunk] : chunk_cache_) {
+        Mix_FreeChunk(chunk);
+    }
+    chunk_cache_.clear();
+    Mix_CloseAudio();
+
     for (auto& [_, tex] : texture_cache_) {
         if (tex) SDL_DestroyTexture(tex);
     }
@@ -338,8 +358,91 @@ void SdlBackend::on_scene_changed(const std::string& /*room_id*/) {
     sprites_.clear();
 }
 
-void SdlBackend::play_music(const std::string& /*path*/) {}
-void SdlBackend::stop_music() {}
-void SdlBackend::play_sound(const std::string& /*path*/) {}
+void SdlBackend::play_music(const std::string& path, int fadein_ms, bool noloop, double volume) {
+    if (path == current_music_path_ && Mix_PlayingMusic()) {
+        if (volume >= 0.0) {
+            music_volume_ = static_cast<int>(volume * MIX_MAX_VOLUME);
+            Mix_VolumeMusic(music_volume_);
+        }
+        return;
+    }
+
+    Mix_HaltMusic();
+    if (current_music_) {
+        Mix_FreeMusic(current_music_);
+        current_music_ = nullptr;
+        current_music_path_.clear();
+    }
+
+    const std::string full_path = resolve_path(path);
+    current_music_ = Mix_LoadMUS(full_path.c_str());
+    if (!current_music_) {
+        std::cerr << "Failed to load music: " << full_path << " (" << Mix_GetError() << ")\n";
+        return;
+    }
+
+    if (volume >= 0.0) {
+        music_volume_ = static_cast<int>(volume * MIX_MAX_VOLUME);
+    }
+    Mix_VolumeMusic(music_volume_);
+
+    int loops = noloop ? 0 : -1;
+    int result;
+    if (fadein_ms > 0) {
+        result = Mix_FadeInMusic(current_music_, loops, fadein_ms);
+    } else {
+        result = Mix_PlayMusic(current_music_, loops);
+    }
+
+    if (result < 0) {
+        std::cerr << "Failed to play music: " << Mix_GetError() << '\n';
+        Mix_FreeMusic(current_music_);
+        current_music_ = nullptr;
+        return;
+    }
+    current_music_path_ = path;
+}
+
+void SdlBackend::stop_music(int fadeout_ms) {
+    if (!current_music_) return;
+
+    if (fadeout_ms > 0) {
+        Mix_FadeOutMusic(fadeout_ms);
+        // Music will be freed on next play_music call or shutdown.
+        // Don't free now—Mix_FreeMusic would halt the fade immediately.
+    } else {
+        Mix_HaltMusic();
+        Mix_FreeMusic(current_music_);
+        current_music_ = nullptr;
+    }
+    current_music_path_.clear();
+}
+
+void SdlBackend::play_sound(const std::string& path, bool loop) {
+    auto it = chunk_cache_.find(path);
+    Mix_Chunk* chunk = nullptr;
+
+    if (it != chunk_cache_.end()) {
+        chunk = it->second;
+    } else {
+        const std::string full_path = resolve_path(path);
+        chunk = Mix_LoadWAV(full_path.c_str());
+        if (!chunk) {
+            std::cerr << "Failed to load sound: " << full_path << " (" << Mix_GetError() << ")\n";
+            return;
+        }
+        chunk_cache_[path] = chunk;
+    }
+
+    Mix_VolumeChunk(chunk, sfx_volume_);
+    int loops = loop ? -1 : 0;
+    if (Mix_PlayChannel(-1, chunk, loops) < 0) {
+        std::cerr << "Failed to play sound: " << Mix_GetError() << '\n';
+    }
+}
+
+void SdlBackend::stop_sound() {
+    Mix_HaltChannel(-1);
+}
 
 } // namespace novel::platform
