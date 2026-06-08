@@ -7,15 +7,16 @@ namespace novel::platform {
 bool ConsoleBackend::init() { return true; }
 void ConsoleBackend::shutdown() {}
 
-void ConsoleBackend::say(const std::string& speaker, const std::string& text) {
+FlowSignal ConsoleBackend::say(const std::string& speaker, const std::string& text) {
     if (!speaker.empty()) {
         std::cout << speaker << ": " << text << '\n';
     } else {
         std::cout << text << '\n';
     }
+    return FlowSignal::Continue;
 }
 
-int ConsoleBackend::choose(const std::vector<std::string>& options) {
+ChoiceResult ConsoleBackend::choose(const std::vector<std::string>& options) {
     for (std::size_t i = 0; i < options.size(); ++i) {
         std::cout << (i + 1) << ". " << options[i] << '\n';
     }
@@ -24,15 +25,16 @@ int ConsoleBackend::choose(const std::vector<std::string>& options) {
         std::cout << "> " << std::flush;
         std::string line;
         if (!std::getline(std::cin, line)) {
-            return static_cast<int>(options.size() - 1);
+            return {static_cast<int>(options.size() - 1), FlowSignal::Continue};
         }
 
         try {
             const int choice = std::stoi(line);
             if (choice >= 1 && choice <= static_cast<int>(options.size())) {
-                return choice - 1;
+                return {choice - 1, FlowSignal::Continue};
             }
-        } catch (...) {
+        } catch (const std::invalid_argument&) {
+        } catch (const std::out_of_range&) {
         }
         std::cout << "Please enter a number between 1 and " << options.size() << ".\n";
     }

@@ -5,10 +5,15 @@
 namespace novel::narrative {
 
 Executor::Executor(const script::ScriptModule& module, BuiltinApi& api, platform::IBackend& backend)
-    : module_(module), api_(api), backend_(backend), evaluator_(api.context(), api) {}
+    : module_(module), api_(api), backend_(backend), evaluator_(api.context(), api) {
+    for (std::size_t i = 0; i < module_.labels.size(); ++i) {
+        label_index_[module_.labels[i].name] = i;
+    }
+}
 
-ExecutionResult Executor::run(const std::string& entry_label) {
+platform::FlowSignal Executor::run(const std::string& entry_label) {
     finished_ = false;
+    pending_signal_ = platform::FlowSignal::Continue;
     return_stack_.clear();
 
     const script::Label* entry = find_label(entry_label);
@@ -33,38 +38,49 @@ ExecutionResult Executor::run(const std::string& entry_label) {
 
         const script::Stmt& stmt = *(*frame.statements)[frame.index];
         const bool advance_pc = execute_statement(stmt, frames);
+        if (pending_signal_ != platform::FlowSignal::Continue) {
+            return pending_signal_;
+        }
         if (advance_pc) {
             ++frame.index;
         }
     }
 
-    return ExecutionResult::Finished;
+    return platform::FlowSignal::Continue;
 }
 
 const script::Label* Executor::find_label(const std::string& name) const {
-    for (const auto& label : module_.labels) {
-        if (label.name == name) {
-            return &label;
-        }
+    auto it = label_index_.find(name);
+    if (it == label_index_.end()) {
+        return nullptr;
     }
-    return nullptr;
+    return &module_.labels[it->second];
 }
 
 bool Executor::execute_statement(const script::Stmt& stmt, std::vector<Frame>& frames) {
-    if (const auto* say = dynamic_cast<const script::SayStmt*>(&stmt)) {
-        backend_.say("", evaluate_text(*say->text));
+    using Kind = script::Stmt::Kind;
+
+    switch (stmt.kind()) {
+    case Kind::Say: {
+        auto& s = static_cast<const script::SayStmt&>(stmt);
+        auto signal = backend_.say("", evaluate_text(*s.text));
+        if (signal != platform::FlowSignal::Continue) {
+            pending_signal_ = signal;
+        }
         return true;
     }
 
-    if (const auto* assign = dynamic_cast<const script::AssignStmt*>(&stmt)) {
-        api_.context().set(assign->name, evaluator_.evaluate(*assign->value));
+    case Kind::Assign: {
+        auto& s = static_cast<const script::AssignStmt&>(stmt);
+        api_.context().set(s.name, evaluator_.evaluate(*s.value));
         return true;
     }
 
-    if (const auto* jump = dynamic_cast<const script::JumpStmt*>(&stmt)) {
-        const script::Label* label = find_label(jump->label);
+    case Kind::Jump: {
+        auto& s = static_cast<const script::JumpStmt&>(stmt);
+        const script::Label* label = find_label(s.label);
         if (!label) {
-            throw std::runtime_error("unknown label: " + jump->label);
+            throw std::runtime_error("unknown label: " + s.label);
         }
         while (frames.size() > 1) {
             frames.pop_back();
@@ -74,10 +90,11 @@ bool Executor::execute_statement(const script::Stmt& stmt, std::vector<Frame>& f
         return false;
     }
 
-    if (const auto* call = dynamic_cast<const script::CallStmt*>(&stmt)) {
-        const script::Label* label = find_label(call->label);
+    case Kind::Call: {
+        auto& s = static_cast<const script::CallStmt&>(stmt);
+        const script::Label* label = find_label(s.label);
         if (!label) {
-            throw std::runtime_error("unknown label: " + call->label);
+            throw std::runtime_error("unknown label: " + s.label);
         }
         Frame& caller = frames.back();
         return_stack_.push_back(ReturnPoint{caller.statements, caller.index + 1});
@@ -85,7 +102,7 @@ bool Executor::execute_statement(const script::Stmt& stmt, std::vector<Frame>& f
         return false;
     }
 
-    if (dynamic_cast<const script::ReturnStmt*>(&stmt)) {
+    case Kind::Return: {
         if (!return_stack_.empty()) {
             const ReturnPoint resume = return_stack_.back();
             return_stack_.pop_back();
@@ -97,63 +114,76 @@ bool Executor::execute_statement(const script::Stmt& stmt, std::vector<Frame>& f
         return false;
     }
 
-    if (const auto* scene = dynamic_cast<const script::SceneStmt*>(&stmt)) {
-        api_.call("scene", {core::Value::from_string(scene->room_id)});
-        backend_.on_scene_changed(scene->room_id);
+    case Kind::Scene: {
+        auto& s = static_cast<const script::SceneStmt&>(stmt);
+        api_.call("scene", {core::Value::from_string(s.room_id)});
+        backend_.on_scene_changed(s.room_id);
         return true;
     }
 
-    if (const auto* go = dynamic_cast<const script::GoStmt*>(&stmt)) {
-        const std::string direction = evaluate_text(*go->direction);
+    case Kind::Go: {
+        auto& s = static_cast<const script::GoStmt&>(stmt);
+        const std::string direction = evaluate_text(*s.direction);
         api_.call("go", {core::Value::from_string(direction)});
         return true;
     }
 
-    if (const auto* bg = dynamic_cast<const script::BgStmt*>(&stmt)) {
-        backend_.show_background(bg->image_path);
+    case Kind::Bg: {
+        auto& s = static_cast<const script::BgStmt&>(stmt);
+        backend_.show_background(s.image_path);
         return true;
     }
 
-    if (const auto* show = dynamic_cast<const script::ShowStmt*>(&stmt)) {
-        backend_.show_sprite(show->tag, show->image_path, show->position);
+    case Kind::Show: {
+        auto& s = static_cast<const script::ShowStmt&>(stmt);
+        backend_.show_sprite(s.tag, s.image_path, s.position);
         return true;
     }
 
-    if (const auto* hide = dynamic_cast<const script::HideStmt*>(&stmt)) {
-        backend_.hide_sprite(hide->tag);
+    case Kind::Hide: {
+        auto& s = static_cast<const script::HideStmt&>(stmt);
+        backend_.hide_sprite(s.tag);
         return true;
     }
 
-    if (const auto* play_music = dynamic_cast<const script::PlayMusicStmt*>(&stmt)) {
-        int fadein_ms = static_cast<int>(play_music->fadein * 1000.0);
-        backend_.play_music(play_music->path, fadein_ms, play_music->noloop, play_music->volume);
+    case Kind::PlayMusic: {
+        auto& s = static_cast<const script::PlayMusicStmt&>(stmt);
+        int fadein_ms = static_cast<int>(s.fadein * 1000.0);
+        backend_.play_music(s.path, fadein_ms, s.noloop, s.volume);
         return true;
     }
 
-    if (const auto* stop_music = dynamic_cast<const script::StopMusicStmt*>(&stmt)) {
-        int fadeout_ms = static_cast<int>(stop_music->fadeout * 1000.0);
+    case Kind::StopMusic: {
+        auto& s = static_cast<const script::StopMusicStmt&>(stmt);
+        int fadeout_ms = static_cast<int>(s.fadeout * 1000.0);
         backend_.stop_music(fadeout_ms);
         return true;
     }
 
-    if (dynamic_cast<const script::StopSoundStmt*>(&stmt)) {
+    case Kind::StopSound: {
         backend_.stop_sound();
         return true;
     }
 
-    if (const auto* play_sound = dynamic_cast<const script::PlaySoundStmt*>(&stmt)) {
-        backend_.play_sound(play_sound->path, play_sound->loop);
+    case Kind::PlaySound: {
+        auto& s = static_cast<const script::PlaySoundStmt&>(stmt);
+        backend_.play_sound(s.path, s.loop);
         return true;
     }
 
-    if (const auto* dialogue = dynamic_cast<const script::DialogueStmt*>(&stmt)) {
-        backend_.say(dialogue->speaker, evaluate_text(*dialogue->text));
+    case Kind::Dialogue: {
+        auto& s = static_cast<const script::DialogueStmt&>(stmt);
+        auto signal = backend_.say(s.speaker, evaluate_text(*s.text));
+        if (signal != platform::FlowSignal::Continue) {
+            pending_signal_ = signal;
+        }
         return true;
     }
 
-    if (const auto* if_stmt = dynamic_cast<const script::IfStmt*>(&stmt)) {
-        const script::StmtList* body = &if_stmt->else_body;
-        for (const auto& branch : if_stmt->branches) {
+    case Kind::If: {
+        auto& s = static_cast<const script::IfStmt&>(stmt);
+        const script::StmtList* body = &s.else_body;
+        for (const auto& branch : s.branches) {
             if (evaluator_.evaluate(*branch.condition).as_bool()) {
                 body = &branch.body;
                 break;
@@ -163,16 +193,22 @@ bool Executor::execute_statement(const script::Stmt& stmt, std::vector<Frame>& f
         return false;
     }
 
-    if (const auto* menu = dynamic_cast<const script::MenuStmt*>(&stmt)) {
+    case Kind::Menu: {
+        auto& s = static_cast<const script::MenuStmt&>(stmt);
         std::vector<std::string> captions;
-        captions.reserve(menu->choices.size());
-        for (const auto& choice : menu->choices) {
+        captions.reserve(s.choices.size());
+        for (const auto& choice : s.choices) {
             captions.push_back(choice.caption);
         }
 
-        const int selected = backend_.choose(captions);
-        frames.push_back(Frame{&menu->choices[static_cast<std::size_t>(selected)].body, 0});
+        auto result = backend_.choose(captions);
+        if (result.signal != platform::FlowSignal::Continue) {
+            pending_signal_ = result.signal;
+            return false;
+        }
+        frames.push_back(Frame{&s.choices[static_cast<std::size_t>(result.selection)].body, 0});
         return false;
+    }
     }
 
     throw std::runtime_error("unsupported statement");

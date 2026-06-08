@@ -9,8 +9,8 @@ class ConsoleBackend final : public IBackend {
 public:
     bool init() override;
     void shutdown() override;
-    void say(const std::string& speaker, const std::string& text) override;
-    int choose(const std::vector<std::string>& options) override;
+    FlowSignal say(const std::string& speaker, const std::string& text) override;
+    ChoiceResult choose(const std::vector<std::string>& options) override;
     void show_background(const std::string& image_path) override;
     void show_sprite(const std::string& tag, const std::string& image_path,
                      const std::string& position) override;

@@ -16,13 +16,13 @@ namespace novel {
 /// Top-level engine facade: load scripts, bootstrap world state, run stories.
 class Engine {
 public:
-    explicit Engine(std::unique_ptr<platform::IBackend> backend);
+    explicit Engine(platform::IBackend& backend);
 
     void load_script_file(const std::string& path);
     void load_script_directory(const std::string& dir_path);
     void load_script_source(const std::string& source, const std::string& name = "<script>");
     void bootstrap();
-    void run(const std::string& entry_label = "start");
+    platform::FlowSignal run(const std::string& entry_label = "start");
 
     core::Context& context() { return context_; }
     adventure::World& world() { return world_; }
@@ -35,7 +35,7 @@ private:
     void apply_module(script::ScriptModule module);
     void apply_defaults();
 
-    std::unique_ptr<platform::IBackend> backend_;
+    platform::IBackend& backend_;
     core::Context context_;
     adventure::World world_;
     adventure::Player player_{"outside"};

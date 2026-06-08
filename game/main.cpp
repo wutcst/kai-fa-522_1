@@ -34,25 +34,25 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    const auto content_root = find_content_root();
+
+    std::unique_ptr<novel::platform::IBackend> backend;
+    if (use_console) {
+        backend = std::make_unique<novel::platform::ConsoleBackend>();
+    } else {
+        backend = std::make_unique<novel::platform::SdlBackend>(
+            1280, 720, "Doki Doki Literature Club: After Story", content_root.string());
+    }
+
+    if (!backend->init()) {
+        std::cerr << "Failed to initialize backend, falling back to console.\n";
+        backend = std::make_unique<novel::platform::ConsoleBackend>();
+        backend->init();
+    }
+
+    novel::platform::GameSettings settings;
+
     try {
-        const auto content_root = find_content_root();
-
-        std::unique_ptr<novel::platform::IBackend> backend;
-        if (use_console) {
-            backend = std::make_unique<novel::platform::ConsoleBackend>();
-        } else {
-            backend = std::make_unique<novel::platform::SdlBackend>(
-                1280, 720, "Doki Doki Literature Club: After Story", content_root.string());
-        }
-
-        if (!backend->init()) {
-            std::cerr << "Failed to initialize backend, falling back to console.\n";
-            backend = std::make_unique<novel::platform::ConsoleBackend>();
-            backend->init();
-        }
-
-        novel::platform::GameSettings settings;
-
         while (true) {
             auto action = backend->show_main_menu();
 
@@ -66,37 +66,27 @@ int main(int argc, char* argv[]) {
                 continue;
             }
 
-            // NewGame
-            try {
-                novel::Engine engine(std::move(backend));
-                engine.load_script_directory(content_file(content_root, "scripts"));
-                engine.run("start");
-                break;  // Game completed normally
-            } catch (const std::runtime_error& e) {
-                if (std::string(e.what()) == "main_menu") {
-                    // Recreate backend for main menu loop
-                    if (use_console) {
-                        backend = std::make_unique<novel::platform::ConsoleBackend>();
-                    } else {
-                        backend = std::make_unique<novel::platform::SdlBackend>(
-                            1280, 720, "Doki Doki Literature Club: After Story",
-                            content_root.string());
-                    }
-                    backend->init();
-                    backend->apply_settings(settings);
-                    continue;
-                }
-                throw;
-            }
-        }
+            novel::Engine engine(*backend);
+            engine.load_script_directory(content_file(content_root, "scripts"));
 
-    } catch (const std::runtime_error& e) {
-        if (std::string(e.what()) == "quit") {
-            return 0;
+            auto signal = engine.run("start");
+
+            if (signal == novel::platform::FlowSignal::Quit) {
+                break;
+            }
+            if (signal == novel::platform::FlowSignal::MainMenu) {
+                backend->stop_music(0);
+                backend->stop_sound();
+                continue;
+            }
+            break;
         }
+    } catch (const std::runtime_error& e) {
         std::cerr << "Error: " << e.what() << '\n';
+        backend->shutdown();
         return 1;
     }
 
+    backend->shutdown();
     return 0;
 }

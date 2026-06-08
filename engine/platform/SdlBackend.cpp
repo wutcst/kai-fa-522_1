@@ -175,6 +175,7 @@ void SdlBackend::render_textbox(const std::string& speaker, const std::string& t
     const int box_height = 185;
     const int box_y = height_ - box_height;
     const int padding = 40;
+    (void)padding;
 
     SDL_Texture* tb_tex = load_texture("gui/textbox.png");
     if (tb_tex) {
@@ -276,7 +277,7 @@ void SdlBackend::render_choices(const std::vector<std::string>& options, int hig
     }
 }
 
-void SdlBackend::wait_for_advance() {
+FlowSignal SdlBackend::wait_for_advance() {
     SDL_RenderPresent(renderer_);
 
     while (running_) {
@@ -284,21 +285,26 @@ void SdlBackend::wait_for_advance() {
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) {
                 running_ = false;
-                throw std::runtime_error("quit");
+                return FlowSignal::Quit;
             }
             if (event.type == SDL_KEYDOWN) {
                 if (event.key.keysym.sym == SDLK_RETURN || event.key.keysym.sym == SDLK_SPACE) {
-                    return;
+                    return FlowSignal::Continue;
                 }
                 if (event.key.keysym.sym == SDLK_ESCAPE) {
                     GameSettings settings;
                     settings.music_volume = music_volume_ * 100 / MIX_MAX_VOLUME;
                     settings.sfx_volume = sfx_volume_ * 100 / MIX_MAX_VOLUME;
                     PauseAction action = show_pause_menu();
+                    if (action == PauseAction::Quit) {
+                        return FlowSignal::Quit;
+                    }
+                    if (action == PauseAction::MainMenu) {
+                        return FlowSignal::MainMenu;
+                    }
                     if (action == PauseAction::Settings) {
                         show_settings(settings);
-                    } else if (action == PauseAction::MainMenu) {
-                        throw std::runtime_error("main_menu");
+                        apply_settings(settings);
                     }
                     render_frame();
                     render_textbox("", "");
@@ -306,20 +312,21 @@ void SdlBackend::wait_for_advance() {
                 }
             }
             if (event.type == SDL_MOUSEBUTTONDOWN) {
-                return;
+                return FlowSignal::Continue;
             }
         }
         SDL_Delay(16);
     }
+    return FlowSignal::Quit;
 }
 
-void SdlBackend::say(const std::string& speaker, const std::string& text) {
+FlowSignal SdlBackend::say(const std::string& speaker, const std::string& text) {
     render_frame();
     render_textbox(speaker, text);
-    wait_for_advance();
+    return wait_for_advance();
 }
 
-int SdlBackend::choose(const std::vector<std::string>& options) {
+ChoiceResult SdlBackend::choose(const std::vector<std::string>& options) {
     int selected = 0;
 
     const int item_h = 54;
@@ -330,7 +337,6 @@ int SdlBackend::choose(const std::vector<std::string>& options) {
     const int start_y = (height_ - total_h) / 2;
 
     while (running_) {
-        // Track mouse hover for highlight
         int mx, my;
         SDL_GetMouseState(&mx, &my);
         for (int i = 0; i < static_cast<int>(options.size()); ++i) {
@@ -349,7 +355,7 @@ int SdlBackend::choose(const std::vector<std::string>& options) {
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) {
                 running_ = false;
-                throw std::runtime_error("quit");
+                return {0, FlowSignal::Quit};
             }
             if (event.type == SDL_KEYDOWN) {
                 switch (event.key.keysym.sym) {
@@ -362,12 +368,12 @@ int SdlBackend::choose(const std::vector<std::string>& options) {
                     break;
                 case SDLK_RETURN:
                 case SDLK_SPACE:
-                    return selected;
+                    return {selected, FlowSignal::Continue};
                 case SDLK_1: case SDLK_2: case SDLK_3: case SDLK_4:
                 case SDLK_5: case SDLK_6: case SDLK_7: case SDLK_8: case SDLK_9: {
                     int idx = event.key.keysym.sym - SDLK_1;
                     if (idx >= 0 && idx < static_cast<int>(options.size())) {
-                        return idx;
+                        return {idx, FlowSignal::Continue};
                     }
                     break;
                 }
@@ -376,18 +382,11 @@ int SdlBackend::choose(const std::vector<std::string>& options) {
                 }
             }
             if (event.type == SDL_MOUSEBUTTONDOWN) {
-                const int item_h = 54;
-                const int item_spacing = 8;
-                const int item_w = width_ * 3 / 5;
-                const int item_x = (width_ - item_w) / 2;
-                const int total_h = static_cast<int>(options.size()) * (item_h + item_spacing) - item_spacing;
-                int start_y = (height_ - total_h) / 2;
-
                 for (int i = 0; i < static_cast<int>(options.size()); ++i) {
                     int iy = start_y + i * (item_h + item_spacing);
                     if (event.button.x >= item_x && event.button.x < item_x + item_w &&
                         event.button.y >= iy && event.button.y < iy + item_h) {
-                        return i;
+                        return {i, FlowSignal::Continue};
                     }
                 }
             }
@@ -395,7 +394,7 @@ int SdlBackend::choose(const std::vector<std::string>& options) {
         SDL_Delay(16);
     }
 
-    return 0;
+    return {0, FlowSignal::Quit};
 }
 
 void SdlBackend::show_background(const std::string& image_path) {
@@ -474,8 +473,6 @@ void SdlBackend::stop_music(int fadeout_ms) {
 
     if (fadeout_ms > 0) {
         Mix_FadeOutMusic(fadeout_ms);
-        // Music will be freed on next play_music call or shutdown.
-        // Don't free now—Mix_FreeMusic would halt the fade immediately.
     } else {
         Mix_HaltMusic();
         Mix_FreeMusic(current_music_);

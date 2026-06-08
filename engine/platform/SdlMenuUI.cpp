@@ -3,7 +3,6 @@
 #include <SDL_mixer.h>
 
 #include <iostream>
-#include <stdexcept>
 #include <string>
 
 namespace novel::platform {
@@ -394,7 +393,7 @@ PauseAction SdlBackend::show_pause_menu() {
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) {
                 running_ = false;
-                throw std::runtime_error("quit");
+                return PauseAction::Quit;
             }
             if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE) {
                 return PauseAction::Resume;
@@ -414,7 +413,7 @@ PauseAction SdlBackend::show_pause_menu() {
         }
         SDL_Delay(16);
     }
-    return PauseAction::Resume;
+    return PauseAction::Quit;
 }
 
 // ─── Apply Settings ──────────────────────────────────────────────────────────

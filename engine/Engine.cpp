@@ -11,8 +11,8 @@
 
 namespace novel {
 
-Engine::Engine(std::unique_ptr<platform::IBackend> backend)
-    : backend_(std::move(backend)), player_("outside") {
+Engine::Engine(platform::IBackend& backend)
+    : backend_(backend), player_("outside") {
     api_ = std::make_unique<narrative::BuiltinApi>(world_, player_, context_);
 }
 
@@ -75,13 +75,13 @@ void Engine::apply_defaults() {
     }
 }
 
-void Engine::run(const std::string& entry_label) {
+platform::FlowSignal Engine::run(const std::string& entry_label) {
     if (!bootstrapped_) {
         bootstrap();
     }
 
-    narrative::Executor executor(module_, *api_, *backend_);
-    executor.run(entry_label);
+    narrative::Executor executor(module_, *api_, backend_);
+    return executor.run(entry_label);
 }
 
 void Engine::register_native(const std::string& name, narrative::BuiltinApi::NativeFn function) {

@@ -2,6 +2,12 @@
 
 namespace novel::platform {
 
+enum class FlowSignal {
+    Continue,
+    Quit,
+    MainMenu,
+};
+
 enum class MenuAction {
     NewGame,
     Settings,
@@ -12,6 +18,12 @@ enum class PauseAction {
     Resume,
     Settings,
     MainMenu,
+    Quit,
+};
+
+struct ChoiceResult {
+    int selection = 0;
+    FlowSignal signal = FlowSignal::Continue;
 };
 
 struct GameSettings {

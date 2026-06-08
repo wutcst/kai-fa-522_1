@@ -30,8 +30,8 @@ public:
     bool init() override;
     void shutdown() override;
 
-    void say(const std::string& speaker, const std::string& text) override;
-    int choose(const std::vector<std::string>& options) override;
+    FlowSignal say(const std::string& speaker, const std::string& text) override;
+    ChoiceResult choose(const std::vector<std::string>& options) override;
     void show_background(const std::string& image_path) override;
     void show_sprite(const std::string& tag, const std::string& image_path,
                      const std::string& position) override;
@@ -55,7 +55,7 @@ private:
     void render_textbox(const std::string& speaker, const std::string& text);
     void render_choices(const std::vector<std::string>& options, int highlight);
     SDL_Texture* load_texture(const std::string& path);
-    void wait_for_advance();
+    FlowSignal wait_for_advance();
     std::string resolve_path(const std::string& relative) const;
     SDL_Rect text_wrap_render(const std::string& text, int x, int y, int max_width,
                               SDL_Color color);

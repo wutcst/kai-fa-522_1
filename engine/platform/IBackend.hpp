@@ -28,13 +28,14 @@ public:
     virtual void apply_settings(const GameSettings& settings) = 0;
 
     /// Display narrative text (dialogue/narration). Blocks until player advances.
-    virtual void say(const std::string& speaker, const std::string& text) = 0;
+    /// Returns a flow signal indicating whether the user requested quit/main-menu.
+    virtual FlowSignal say(const std::string& speaker, const std::string& text) = 0;
 
     /// Legacy overload for narration without speaker.
-    void say(const std::string& text) { say("", text); }
+    FlowSignal say(const std::string& text) { return say("", text); }
 
-    /// Present choices and return 0-based selection index.
-    virtual int choose(const std::vector<std::string>& options) = 0;
+    /// Present choices and return selection index + flow signal.
+    virtual ChoiceResult choose(const std::vector<std::string>& options) = 0;
 
     /// Set background image for current scene.
     virtual void show_background(const std::string& image_path) = 0;
