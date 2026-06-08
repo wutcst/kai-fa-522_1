@@ -36,6 +36,41 @@ SdlBackend::SdlBackend(int width, int height, const std::string& title,
 
 SdlBackend::~SdlBackend() { shutdown(); }
 
+// ─── Font loading / reloading (scaled to current resolution) ─────────────────
+
+bool SdlBackend::reload_fonts() {
+    if (font_title_ && font_title_ != font_) TTF_CloseFont(font_title_);
+    if (font_small_ && font_small_ != font_) TTF_CloseFont(font_small_);
+    if (font_) TTF_CloseFont(font_);
+    font_ = font_small_ = font_title_ = nullptr;
+
+    int base_size  = std::max(sy(24), 10);
+    int small_size = std::max(sy(20), 8);
+    int title_size = std::max(sy(48), 16);
+
+    const std::string font_path = resolve_path("fonts/default.ttf");
+    font_ = TTF_OpenFont(font_path.c_str(), base_size);
+    if (!font_)
+        font_ = TTF_OpenFont("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", base_size);
+    if (!font_) {
+        std::cerr << "TTF_OpenFont failed: " << TTF_GetError() << '\n';
+        return false;
+    }
+
+    font_small_ = TTF_OpenFont(font_path.c_str(), small_size);
+    if (!font_small_)
+        font_small_ = TTF_OpenFont("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", small_size);
+    if (!font_small_)
+        font_small_ = font_;
+
+    const std::string title_font_path = resolve_path("gui/font/RifficFree-Bold.ttf");
+    font_title_ = TTF_OpenFont(title_font_path.c_str(), title_size);
+    if (!font_title_)
+        font_title_ = font_;
+
+    return true;
+}
+
 bool SdlBackend::init() {
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) != 0) {
         std::cerr << "SDL_Init failed: " << SDL_GetError() << '\n';
@@ -73,29 +108,7 @@ bool SdlBackend::init() {
         return false;
     }
 
-    const std::string font_path = resolve_path("fonts/default.ttf");
-    font_ = TTF_OpenFont(font_path.c_str(), 24);
-    if (!font_) {
-        font_ = TTF_OpenFont("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 24);
-    }
-    if (!font_) {
-        std::cerr << "TTF_OpenFont failed: " << TTF_GetError() << '\n';
-        return false;
-    }
-
-    font_small_ = TTF_OpenFont(font_path.c_str(), 20);
-    if (!font_small_) {
-        font_small_ = TTF_OpenFont("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 20);
-    }
-    if (!font_small_) {
-        font_small_ = font_;
-    }
-
-    const std::string title_font_path = resolve_path("gui/font/RifficFree-Bold.ttf");
-    font_title_ = TTF_OpenFont(title_font_path.c_str(), 48);
-    if (!font_title_) {
-        font_title_ = font_;
-    }
+    if (!reload_fonts()) return false;
 
     running_ = true;
     return true;
@@ -189,7 +202,7 @@ void SdlBackend::render_sprites() {
 }
 
 void SdlBackend::render_textbox(const std::string& speaker, const std::string& text) {
-    const int box_height = 185;
+    const int box_height = sy(185);
 
     SDL_Texture* tb_tex = load_texture("gui/textbox.png");
     if (tb_tex) {
@@ -198,7 +211,7 @@ void SdlBackend::render_textbox(const std::string& speaker, const std::string& t
         float scale = static_cast<float>(width_) * 0.8f / static_cast<float>(tw);
         int draw_w = static_cast<int>(tw * scale);
         int draw_h = static_cast<int>(th * scale);
-        SDL_Rect tb_dst = {(width_ - draw_w) / 2, height_ - draw_h - 10, draw_w, draw_h};
+        SDL_Rect tb_dst = {(width_ - draw_w) / 2, height_ - draw_h - sy(10), draw_w, draw_h};
         SDL_RenderCopy(renderer_, tb_tex, nullptr, &tb_dst);
     } else {
         int box_y = height_ - box_height;
@@ -211,7 +224,7 @@ void SdlBackend::render_textbox(const std::string& speaker, const std::string& t
     }
 
     const int text_left = width_ / 8;
-    int text_y = height_ - box_height + 30;
+    int text_y = height_ - box_height + sy(30);
 
     if (!speaker.empty()) {
         SDL_Color name_color = {90, 40, 80, 255};
@@ -220,7 +233,7 @@ void SdlBackend::render_textbox(const std::string& speaker, const std::string& t
             SDL_Texture* name_tex = SDL_CreateTextureFromSurface(renderer_, name_surface);
             SDL_Rect name_rect = {text_left, text_y, name_surface->w, name_surface->h};
             SDL_RenderCopy(renderer_, name_tex, nullptr, &name_rect);
-            text_y += name_surface->h + 6;
+            text_y += name_surface->h + sy(6);
             SDL_DestroyTexture(name_tex);
             SDL_FreeSurface(name_surface);
         }
@@ -254,7 +267,7 @@ void SdlBackend::render_choices(const std::vector<std::string>& options, int hig
 
     for (int i = 0; i < static_cast<int>(options.size()); ++i) {
         int iy = layout.item_y(i);
-        SDL_Rect dst = {layout.item_x, iy, layout.item_w, ChoiceLayout::kItemH};
+        SDL_Rect dst = {layout.item_x, iy, layout.item_w, layout.item_h};
 
         SDL_Texture* bg = (i == highlight) ? hover_bg : idle_bg;
         if (bg) {
@@ -275,11 +288,11 @@ void SdlBackend::render_choices(const std::vector<std::string>& options, int hig
                                            : SDL_Color{50, 30, 50, 255};
         const std::string label = options[static_cast<std::size_t>(i)];
         SDL_Surface* surface = TTF_RenderUTF8_Blended_Wrapped(
-            font_, label.c_str(), color, static_cast<Uint32>(layout.item_w - 40));
+            font_, label.c_str(), color, static_cast<Uint32>(layout.item_w - sx(40)));
         if (surface) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer_, surface);
-            SDL_Rect text_dst = {layout.item_x + 20,
-                                 iy + (ChoiceLayout::kItemH - surface->h) / 2,
+            SDL_Rect text_dst = {layout.item_x + sx(20),
+                                 iy + (layout.item_h - surface->h) / 2,
                                  surface->w, surface->h};
             SDL_RenderCopy(renderer_, tex, nullptr, &text_dst);
             SDL_DestroyTexture(tex);
@@ -419,7 +432,7 @@ ChoiceResult SdlBackend::choose(const std::vector<std::string>& options) {
         for (int i = 0; i < static_cast<int>(options.size()); ++i) {
             int iy = layout.item_y(i);
             if (mx >= layout.item_x && mx < layout.item_x + layout.item_w &&
-                my >= iy && my < iy + ChoiceLayout::kItemH) {
+                my >= iy && my < iy + layout.item_h) {
                 selected = i;
                 break;
             }
@@ -465,7 +478,7 @@ ChoiceResult SdlBackend::choose(const std::vector<std::string>& options) {
                     if (event.button.x >= layout.item_x &&
                         event.button.x < layout.item_x + layout.item_w &&
                         event.button.y >= iy &&
-                        event.button.y < iy + ChoiceLayout::kItemH) {
+                        event.button.y < iy + layout.item_h) {
                         return {i, FlowSignal::Continue};
                     }
                 }

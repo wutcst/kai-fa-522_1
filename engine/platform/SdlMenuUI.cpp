@@ -53,9 +53,9 @@ bool SdlBackend::render_button(Button& btn, TTF_Font* font) {
 }
 
 void SdlBackend::render_slider(int x, int y, int w, int value, bool active) {
-    const int bar_h = 6;
-    const int thumb_w = 16;
-    const int thumb_h = 24;
+    const int bar_h   = std::max(sy(6), 2);
+    const int thumb_w = std::max(sx(16), 4);
+    const int thumb_h = std::max(sy(24), 8);
 
     SDL_Rect bar_rect = {x, y + thumb_h / 2 - bar_h / 2, w, bar_h};
     SDL_SetRenderDrawColor(renderer_, 100, 100, 100, 200);
@@ -102,17 +102,6 @@ MenuAction SdlBackend::show_main_menu() {
         load_texture(char_front[1].path),
     };
 
-    const int btn_w = 200;
-    const int btn_h = 44;
-    const int btn_spacing = 12;
-    const int btn_x = 60;
-    const int btn_start_y = height_ / 2 + 40;
-
-    Button buttons[3];
-    buttons[0] = {{btn_x, btn_start_y, btn_w, btn_h}, "New Game"};
-    buttons[1] = {{btn_x, btn_start_y + btn_h + btn_spacing, btn_w, btn_h}, "Settings"};
-    buttons[2] = {{btn_x, btn_start_y + (btn_h + btn_spacing) * 2, btn_w, btn_h}, "Quit"};
-
     auto draw_char = [&](SDL_Texture* tex, float xc, float yc, float zoom) {
         if (!tex) return;
         int tw, th;
@@ -125,9 +114,23 @@ MenuAction SdlBackend::show_main_menu() {
         SDL_RenderCopy(renderer_, tex, nullptr, &dst);
     };
 
+    Button buttons[3];
+    buttons[0].label = "New Game";
+    buttons[1].label = "Settings";
+    buttons[2].label = "Quit";
     bool clicked_last_frame = false;
 
     while (running_) {
+        const int btn_w       = sx(200);
+        const int btn_h       = sy(44);
+        const int btn_spacing = sy(12);
+        const int btn_x       = sx(60);
+        const int btn_start_y = height_ / 2 + sy(40);
+
+        buttons[0].rect = {btn_x, btn_start_y, btn_w, btn_h};
+        buttons[1].rect = {btn_x, btn_start_y + btn_h + btn_spacing, btn_w, btn_h};
+        buttons[2].rect = {btn_x, btn_start_y + (btn_h + btn_spacing) * 2, btn_w, btn_h};
+
         SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 255);
         SDL_RenderClear(renderer_);
 
@@ -146,10 +149,10 @@ MenuAction SdlBackend::show_main_menu() {
         if (logo_tex) {
             int lw, lh;
             SDL_QueryTexture(logo_tex, nullptr, nullptr, &lw, &lh);
-            float scale = 240.0f / static_cast<float>(lw);
+            float scale = static_cast<float>(sx(240)) / static_cast<float>(lw);
             int logo_draw_w = static_cast<int>(lw * scale);
             int logo_draw_h = static_cast<int>(lh * scale);
-            SDL_Rect logo_dst = {40, 24, logo_draw_w, logo_draw_h};
+            SDL_Rect logo_dst = {sx(40), sy(24), logo_draw_w, logo_draw_h};
             SDL_RenderCopy(renderer_, logo_tex, nullptr, &logo_dst);
         }
 
@@ -203,20 +206,28 @@ void SdlBackend::show_settings(GameSettings& settings) {
     SDL_Texture* bg_tex = load_texture("gui/menu_bg.png");
     SDL_Texture* overlay_tex = load_texture("gui/overlay/game_menu.png");
 
-    const int panel_w = 600;
-    const int panel_h = 400;
-    const int panel_x = (width_ - panel_w) / 2;
-    const int panel_y = (height_ - panel_h) / 2;
-    const int label_x = panel_x + 40;
-    const int slider_x = panel_x + 200;
-    const int slider_w = 320;
-    const int row_h = 60;
-
-    Button back_btn = {{panel_x + panel_w / 2 - 80, panel_y + panel_h - 60, 160, 44}, "Back"};
-
     int dragging = -1;
+    Button back_btn;
+    back_btn.label = "Back";
+    Button res_prev_btn;
+    res_prev_btn.label = "<";
+    Button res_next_btn;
+    res_next_btn.label = ">";
 
     while (running_) {
+        // Recompute layout every frame so it adapts to resolution changes
+        const int panel_w  = sx(600);
+        const int panel_h  = sy(460);
+        const int panel_x  = (width_ - panel_w) / 2;
+        const int panel_y  = (height_ - panel_h) / 2;
+        const int label_x  = panel_x + sx(40);
+        const int slider_x = panel_x + sx(200);
+        const int slider_w = sx(320);
+        const int row_h    = sy(60);
+
+        back_btn.rect = {panel_x + panel_w / 2 - sx(80),
+                         panel_y + panel_h - sy(60), sx(160), sy(44)};
+
         SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 255);
         SDL_RenderClear(renderer_);
         if (bg_tex) SDL_RenderCopy(renderer_, bg_tex, nullptr, nullptr);
@@ -234,18 +245,18 @@ void SdlBackend::show_settings(GameSettings& settings) {
         if (title_surf) {
             SDL_Texture* title_tex = SDL_CreateTextureFromSurface(renderer_, title_surf);
             SDL_Rect title_dst = {panel_x + (panel_w - title_surf->w) / 2,
-                                  panel_y + 16, title_surf->w, title_surf->h};
+                                  panel_y + sy(16), title_surf->w, title_surf->h};
             SDL_RenderCopy(renderer_, title_tex, nullptr, &title_dst);
             SDL_DestroyTexture(title_tex);
             SDL_FreeSurface(title_surf);
         }
 
-        int base_y = panel_y + 90;
+        int base_y = panel_y + sy(90);
         struct SliderRow { const char* label; int* value; };
         SliderRow rows[] = {
             {"Music Volume", &settings.music_volume},
-            {"SFX Volume", &settings.sfx_volume},
-            {"Text Speed", &settings.text_speed},
+            {"SFX Volume",   &settings.sfx_volume},
+            {"Text Speed",   &settings.text_speed},
         };
 
         int mx, my;
@@ -257,7 +268,7 @@ void SdlBackend::show_settings(GameSettings& settings) {
             SDL_Surface* lbl_surf = TTF_RenderUTF8_Blended(font_, rows[i].label, lbl_col);
             if (lbl_surf) {
                 SDL_Texture* lbl_tex = SDL_CreateTextureFromSurface(renderer_, lbl_surf);
-                SDL_Rect lbl_dst = {label_x, row_y + 4, lbl_surf->w, lbl_surf->h};
+                SDL_Rect lbl_dst = {label_x, row_y + sy(4), lbl_surf->w, lbl_surf->h};
                 SDL_RenderCopy(renderer_, lbl_tex, nullptr, &lbl_dst);
                 SDL_DestroyTexture(lbl_tex);
                 SDL_FreeSurface(lbl_surf);
@@ -278,7 +289,7 @@ void SdlBackend::show_settings(GameSettings& settings) {
             SDL_Surface* val_surf = TTF_RenderUTF8_Blended(font_small_, val_str.c_str(), val_col);
             if (val_surf) {
                 SDL_Texture* val_tex = SDL_CreateTextureFromSurface(renderer_, val_surf);
-                SDL_Rect val_dst = {slider_x + slider_w + 12, row_y + 4,
+                SDL_Rect val_dst = {slider_x + slider_w + sx(12), row_y + sy(4),
                                     val_surf->w, val_surf->h};
                 SDL_RenderCopy(renderer_, val_tex, nullptr, &val_dst);
                 SDL_DestroyTexture(val_tex);
@@ -286,13 +297,50 @@ void SdlBackend::show_settings(GameSettings& settings) {
             }
         }
 
-        int fs_y = base_y + 3 * row_h;
+        // ── Resolution selector ──────────────────────────────────────────
+        int res_y = base_y + 3 * row_h;
+        {
+            SDL_Color lbl_col = {220, 220, 220, 255};
+            SDL_Surface* lbl_surf = TTF_RenderUTF8_Blended(font_, "Resolution", lbl_col);
+            if (lbl_surf) {
+                SDL_Texture* lbl_tex = SDL_CreateTextureFromSurface(renderer_, lbl_surf);
+                SDL_Rect lbl_dst = {label_x, res_y + sy(4), lbl_surf->w, lbl_surf->h};
+                SDL_RenderCopy(renderer_, lbl_tex, nullptr, &lbl_dst);
+                SDL_DestroyTexture(lbl_tex);
+                SDL_FreeSurface(lbl_surf);
+            }
+
+            const int arrow_sz = sy(30);
+            res_prev_btn.rect = {slider_x, res_y + sy(2), arrow_sz, arrow_sz};
+            res_next_btn.rect = {slider_x + slider_w - arrow_sz, res_y + sy(2),
+                                 arrow_sz, arrow_sz};
+            render_button(res_prev_btn, font_small_);
+            render_button(res_next_btn, font_small_);
+
+            int idx = settings.resolution_index;
+            if (idx < 0 || idx >= kResolutionCount) idx = kDefaultResolution;
+            std::string res_val = std::to_string(kResolutions[idx].width) + "x" +
+                                  std::to_string(kResolutions[idx].height);
+            SDL_Color val_col = {255, 255, 255, 255};
+            SDL_Surface* val_surf = TTF_RenderUTF8_Blended(font_, res_val.c_str(), val_col);
+            if (val_surf) {
+                SDL_Texture* val_tex = SDL_CreateTextureFromSurface(renderer_, val_surf);
+                int center_x = slider_x + slider_w / 2 - val_surf->w / 2;
+                SDL_Rect val_dst = {center_x, res_y + sy(4), val_surf->w, val_surf->h};
+                SDL_RenderCopy(renderer_, val_tex, nullptr, &val_dst);
+                SDL_DestroyTexture(val_tex);
+                SDL_FreeSurface(val_surf);
+            }
+        }
+
+        // ── Fullscreen toggle ────────────────────────────────────────────
+        int fs_y = base_y + 4 * row_h;
         SDL_Color fs_col = {220, 220, 220, 255};
         std::string fs_label = std::string("Fullscreen: ") + (settings.fullscreen ? "ON" : "OFF");
         SDL_Surface* fs_surf = TTF_RenderUTF8_Blended(font_, fs_label.c_str(), fs_col);
         if (fs_surf) {
             SDL_Texture* fs_tex = SDL_CreateTextureFromSurface(renderer_, fs_surf);
-            SDL_Rect fs_dst = {label_x, fs_y + 4, fs_surf->w, fs_surf->h};
+            SDL_Rect fs_dst = {label_x, fs_y + sy(4), fs_surf->w, fs_surf->h};
             SDL_RenderCopy(renderer_, fs_tex, nullptr, &fs_dst);
             SDL_DestroyTexture(fs_tex);
             SDL_FreeSurface(fs_surf);
@@ -312,19 +360,35 @@ void SdlBackend::show_settings(GameSettings& settings) {
                 return;
             }
             if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
+                // Slider hit test
                 for (int i = 0; i < 3; ++i) {
                     int row_y = base_y + i * row_h;
-                    SDL_Rect slider_area = {slider_x, row_y, slider_w, 30};
+                    SDL_Rect slider_area = {slider_x, row_y, slider_w, sy(30)};
                     if (mx >= slider_area.x && mx < slider_area.x + slider_area.w &&
                         my >= slider_area.y && my < slider_area.y + slider_area.h) {
                         dragging = i;
                     }
                 }
-                if (mx >= label_x && mx < label_x + 300 &&
-                    my >= fs_y && my < fs_y + 36) {
+                // Resolution arrows
+                if (res_prev_btn.hovered) {
+                    play_ui_sound("select.ogg");
+                    settings.resolution_index =
+                        (settings.resolution_index - 1 + kResolutionCount) % kResolutionCount;
+                    apply_settings(settings);
+                }
+                if (res_next_btn.hovered) {
+                    play_ui_sound("select.ogg");
+                    settings.resolution_index =
+                        (settings.resolution_index + 1) % kResolutionCount;
+                    apply_settings(settings);
+                }
+                // Fullscreen click
+                if (mx >= label_x && mx < label_x + sx(300) &&
+                    my >= fs_y && my < fs_y + sy(36)) {
                     settings.fullscreen = !settings.fullscreen;
                     apply_settings(settings);
                 }
+                // Back button
                 if (back_btn.hovered) {
                     play_ui_sound("select.ogg");
                     apply_settings(settings);
@@ -342,23 +406,26 @@ void SdlBackend::show_settings(GameSettings& settings) {
 // ─── Pause Menu ──────────────────────────────────────────────────────────────
 
 PauseAction SdlBackend::show_pause_menu() {
-    const int panel_w = 300;
-    const int panel_h = 260;
-    const int panel_x = (width_ - panel_w) / 2;
-    const int panel_y = (height_ - panel_h) / 2;
-
-    const int btn_w = 200;
-    const int btn_h = 44;
-    const int btn_spacing = 14;
-    const int btn_x = panel_x + (panel_w - btn_w) / 2;
-    int btn_y_start = panel_y + 70;
-
     Button buttons[3];
-    buttons[0] = {{btn_x, btn_y_start, btn_w, btn_h}, "Resume"};
-    buttons[1] = {{btn_x, btn_y_start + btn_h + btn_spacing, btn_w, btn_h}, "Settings"};
-    buttons[2] = {{btn_x, btn_y_start + (btn_h + btn_spacing) * 2, btn_w, btn_h}, "Main Menu"};
+    buttons[0].label = "Resume";
+    buttons[1].label = "Settings";
+    buttons[2].label = "Main Menu";
 
     while (running_) {
+        const int panel_w    = sx(300);
+        const int panel_h    = sy(260);
+        const int panel_x    = (width_ - panel_w) / 2;
+        const int panel_y    = (height_ - panel_h) / 2;
+        const int btn_w      = sx(200);
+        const int btn_h      = sy(44);
+        const int btn_spacing = sy(14);
+        const int btn_x      = panel_x + (panel_w - btn_w) / 2;
+        const int btn_y_start = panel_y + sy(70);
+
+        buttons[0].rect = {btn_x, btn_y_start, btn_w, btn_h};
+        buttons[1].rect = {btn_x, btn_y_start + btn_h + btn_spacing, btn_w, btn_h};
+        buttons[2].rect = {btn_x, btn_y_start + (btn_h + btn_spacing) * 2, btn_w, btn_h};
+
         render_frame();
 
         SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_BLEND);
@@ -377,7 +444,7 @@ PauseAction SdlBackend::show_pause_menu() {
         if (title_surf) {
             SDL_Texture* title_tex = SDL_CreateTextureFromSurface(renderer_, title_surf);
             SDL_Rect title_dst = {panel_x + (panel_w - title_surf->w) / 2,
-                                  panel_y + 20, title_surf->w, title_surf->h};
+                                  panel_y + sy(20), title_surf->w, title_surf->h};
             SDL_RenderCopy(renderer_, title_tex, nullptr, &title_dst);
             SDL_DestroyTexture(title_tex);
             SDL_FreeSurface(title_surf);
@@ -424,13 +491,42 @@ void SdlBackend::apply_settings(const GameSettings& settings) {
     text_speed_ = settings.text_speed;
     Mix_VolumeMusic(music_volume_);
 
-    if (window_) {
-        Uint32 flags = SDL_GetWindowFlags(window_);
-        bool is_fs = (flags & SDL_WINDOW_FULLSCREEN_DESKTOP) != 0;
-        if (settings.fullscreen != is_fs) {
-            SDL_SetWindowFullscreen(window_,
-                settings.fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+    if (!window_) return;
+
+    // ── Fullscreen toggle ────────────────────────────────────────────────
+    Uint32 flags = SDL_GetWindowFlags(window_);
+    bool is_fs = (flags & SDL_WINDOW_FULLSCREEN_DESKTOP) != 0;
+    if (settings.fullscreen != is_fs) {
+        SDL_SetWindowFullscreen(window_,
+            settings.fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+    }
+
+    // ── Determine target dimensions ──────────────────────────────────────
+    int target_w = width_;
+    int target_h = height_;
+
+    if (settings.fullscreen) {
+        SDL_DisplayMode mode;
+        if (SDL_GetDesktopDisplayMode(0, &mode) == 0) {
+            target_w = mode.w;
+            target_h = mode.h;
         }
+    } else {
+        int idx = settings.resolution_index;
+        if (idx >= 0 && idx < kResolutionCount) {
+            target_w = kResolutions[idx].width;
+            target_h = kResolutions[idx].height;
+        }
+        if (target_w != width_ || target_h != height_) {
+            SDL_SetWindowSize(window_, target_w, target_h);
+            SDL_SetWindowPosition(window_, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+        }
+    }
+
+    if (target_w != width_ || target_h != height_) {
+        width_ = target_w;
+        height_ = target_h;
+        reload_fonts();
     }
 }
 

@@ -64,20 +64,31 @@ public:
     void apply_settings(const GameSettings& settings) override;
 
 private:
-    // ── Choice layout ────────────────────────────────────────────────────
+    // ── Reference design resolution (all pixel literals target this) ─────
+    static constexpr int kRefW = 1280;
+    static constexpr int kRefH = 720;
+
+    /// Scale a horizontal design-pixel value to the current resolution.
+    int sx(int v) const { return v * width_ / kRefW; }
+    /// Scale a vertical design-pixel value to the current resolution.
+    int sy(int v) const { return v * height_ / kRefH; }
+
+    // ── Choice layout (scales to current resolution) ─────────────────────
     struct ChoiceLayout {
-        static constexpr int kItemH = 54;
-        static constexpr int kSpacing = 8;
+        int item_h;
+        int spacing;
         int item_w;
         int item_x;
         int start_y;
 
         ChoiceLayout(int screen_w, int screen_h, int count)
-            : item_w(screen_w * 3 / 5),
+            : item_h(screen_h * 54 / kRefH),
+              spacing(screen_h * 8 / kRefH),
+              item_w(screen_w * 3 / 5),
               item_x((screen_w - item_w) / 2),
-              start_y((screen_h - (count * (kItemH + kSpacing) - kSpacing)) / 2) {}
+              start_y((screen_h - (count * (item_h + spacing) - spacing)) / 2) {}
 
-        int item_y(int index) const { return start_y + index * (kItemH + kSpacing); }
+        int item_y(int index) const { return start_y + index * (item_h + spacing); }
     };
 
     // ── Rendering helpers ────────────────────────────────────────────────
@@ -102,6 +113,7 @@ private:
     bool render_button(Button& btn, TTF_Font* font);
     void render_slider(int x, int y, int w, int value, bool active);
     void play_ui_sound(const std::string& name);
+    bool reload_fonts();
 
     // ── Window / renderer / fonts (manual cleanup due to aliasing) ──────
     int width_;

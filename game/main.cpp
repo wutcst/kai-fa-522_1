@@ -40,8 +40,10 @@ int main(int argc, char* argv[]) {
     if (use_console) {
         backend = std::make_unique<novel::platform::ConsoleBackend>();
     } else {
+        auto& res = novel::platform::kResolutions[novel::platform::kDefaultResolution];
         backend = std::make_unique<novel::platform::SdlBackend>(
-            1280, 720, "Doki Doki Literature Club: After Story", content_root.string());
+            res.width, res.height,
+            "Doki Doki Literature Club: After Story", content_root.string());
     }
 
     if (!backend->init()) {
