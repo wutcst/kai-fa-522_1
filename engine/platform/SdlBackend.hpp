@@ -91,6 +91,7 @@ private:
     int sfx_volume_ = MIX_MAX_VOLUME;
 
     bool running_ = true;
+    bool shutdown_done_ = false;
 };
 
 } // namespace novel::platform

@@ -81,6 +81,9 @@ bool SdlBackend::init() {
 }
 
 void SdlBackend::shutdown() {
+    if (shutdown_done_) return;
+    shutdown_done_ = true;
+
     Mix_HaltChannel(-1);
     if (current_music_) {
         Mix_HaltMusic();

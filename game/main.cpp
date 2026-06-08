@@ -83,10 +83,8 @@ int main(int argc, char* argv[]) {
         }
     } catch (const std::runtime_error& e) {
         std::cerr << "Error: " << e.what() << '\n';
-        backend->shutdown();
         return 1;
     }
 
-    backend->shutdown();
     return 0;
 }
