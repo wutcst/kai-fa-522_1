@@ -7,11 +7,26 @@
 #include <SDL_mixer.h>
 #include <SDL_ttf.h>
 
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
 namespace novel::platform {
+
+// ─── RAII deleters for SDL resources ─────────────────────────────────────────
+
+namespace sdl_raii {
+struct TextureDeleter { void operator()(SDL_Texture* p) const { if (p) SDL_DestroyTexture(p); } };
+struct ChunkDeleter   { void operator()(Mix_Chunk* p)   const { if (p) Mix_FreeChunk(p); } };
+struct MusicDeleter   { void operator()(Mix_Music* p)   const { if (p) Mix_FreeMusic(p); } };
+
+using TexturePtr = std::unique_ptr<SDL_Texture, TextureDeleter>;
+using ChunkPtr   = std::unique_ptr<Mix_Chunk,   ChunkDeleter>;
+using MusicPtr   = std::unique_ptr<Mix_Music,   MusicDeleter>;
+} // namespace sdl_raii
+
+// ─── Sprite (non-owning texture ref into cache) ─────────────────────────────
 
 struct Sprite {
     SDL_Texture* texture = nullptr;
@@ -49,6 +64,23 @@ public:
     void apply_settings(const GameSettings& settings) override;
 
 private:
+    // ── Choice layout ────────────────────────────────────────────────────
+    struct ChoiceLayout {
+        static constexpr int kItemH = 54;
+        static constexpr int kSpacing = 8;
+        int item_w;
+        int item_x;
+        int start_y;
+
+        ChoiceLayout(int screen_w, int screen_h, int count)
+            : item_w(screen_w * 3 / 5),
+              item_x((screen_w - item_w) / 2),
+              start_y((screen_h - (count * (kItemH + kSpacing) - kSpacing)) / 2) {}
+
+        int item_y(int index) const { return start_y + index * (kItemH + kSpacing); }
+    };
+
+    // ── Rendering helpers ────────────────────────────────────────────────
     void render_frame();
     void render_background();
     void render_sprites();
@@ -56,10 +88,12 @@ private:
     void render_choices(const std::vector<std::string>& options, int highlight);
     SDL_Texture* load_texture(const std::string& path);
     FlowSignal wait_for_advance();
+    FlowSignal render_typewriter(const std::string& speaker, const std::string& text);
     std::string resolve_path(const std::string& relative) const;
     SDL_Rect text_wrap_render(const std::string& text, int x, int y, int max_width,
                               SDL_Color color);
 
+    // ── UI helpers ───────────────────────────────────────────────────────
     struct Button {
         SDL_Rect rect;
         std::string label;
@@ -68,8 +102,8 @@ private:
     bool render_button(Button& btn, TTF_Font* font);
     void render_slider(int x, int y, int w, int value, bool active);
     void play_ui_sound(const std::string& name);
-    TTF_Font* font_title_ = nullptr;
 
+    // ── Window / renderer / fonts (manual cleanup due to aliasing) ──────
     int width_;
     int height_;
     std::string title_;
@@ -79,17 +113,21 @@ private:
     SDL_Renderer* renderer_ = nullptr;
     TTF_Font* font_ = nullptr;
     TTF_Font* font_small_ = nullptr;
+    TTF_Font* font_title_ = nullptr;
 
+    // ── RAII-managed caches ──────────────────────────────────────────────
     SDL_Texture* background_ = nullptr;
     std::unordered_map<std::string, Sprite> sprites_;
-    std::unordered_map<std::string, SDL_Texture*> texture_cache_;
+    std::unordered_map<std::string, sdl_raii::TexturePtr> texture_cache_;
 
-    Mix_Music* current_music_ = nullptr;
+    sdl_raii::MusicPtr current_music_;
     std::string current_music_path_;
-    std::unordered_map<std::string, Mix_Chunk*> chunk_cache_;
+    std::unordered_map<std::string, sdl_raii::ChunkPtr> chunk_cache_;
+
+    // ── Settings / state ─────────────────────────────────────────────────
     int music_volume_ = MIX_MAX_VOLUME;
     int sfx_volume_ = MIX_MAX_VOLUME;
-
+    int text_speed_ = 50;
     bool running_ = true;
     bool shutdown_done_ = false;
 };

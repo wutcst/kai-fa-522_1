@@ -9,6 +9,27 @@
 
 namespace novel::platform {
 
+namespace {
+
+/// Return byte-offset of each UTF-8 code point, plus a sentinel at end.
+std::vector<std::size_t> utf8_char_offsets(const std::string& text) {
+    std::vector<std::size_t> offsets;
+    offsets.reserve(text.size() + 1);
+    for (std::size_t i = 0; i < text.size(); ) {
+        offsets.push_back(i);
+        auto c = static_cast<unsigned char>(text[i]);
+        if      (c < 0x80)            i += 1;
+        else if ((c >> 5) == 0x06)    i += 2;
+        else if ((c >> 4) == 0x0E)    i += 3;
+        else if ((c >> 3) == 0x1E)    i += 4;
+        else                          i += 1;
+    }
+    offsets.push_back(text.size());
+    return offsets;
+}
+
+} // namespace
+
 SdlBackend::SdlBackend(int width, int height, const std::string& title,
                          const std::string& content_root)
     : width_(width), height_(height), title_(title), content_root_(content_root) {}
@@ -87,21 +108,14 @@ void SdlBackend::shutdown() {
     Mix_HaltChannel(-1);
     if (current_music_) {
         Mix_HaltMusic();
-        Mix_FreeMusic(current_music_);
-        current_music_ = nullptr;
-    }
-    for (auto& [_, chunk] : chunk_cache_) {
-        Mix_FreeChunk(chunk);
+        current_music_.reset();
     }
     chunk_cache_.clear();
     Mix_CloseAudio();
 
-    for (auto& [_, tex] : texture_cache_) {
-        if (tex) SDL_DestroyTexture(tex);
-    }
-    texture_cache_.clear();
     sprites_.clear();
     background_ = nullptr;
+    texture_cache_.clear();
 
     if (font_title_ && font_title_ != font_) TTF_CloseFont(font_title_);
     if (font_small_ && font_small_ != font_) TTF_CloseFont(font_small_);
@@ -128,7 +142,7 @@ std::string SdlBackend::resolve_path(const std::string& relative) const {
 SDL_Texture* SdlBackend::load_texture(const std::string& path) {
     const auto it = texture_cache_.find(path);
     if (it != texture_cache_.end()) {
-        return it->second;
+        return it->second.get();
     }
 
     const std::string full_path = resolve_path(path);
@@ -140,7 +154,7 @@ SDL_Texture* SdlBackend::load_texture(const std::string& path) {
 
     SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer_, surface);
     SDL_FreeSurface(surface);
-    texture_cache_[path] = texture;
+    texture_cache_[path] = sdl_raii::TexturePtr(texture);
     return texture;
 }
 
@@ -176,9 +190,6 @@ void SdlBackend::render_sprites() {
 
 void SdlBackend::render_textbox(const std::string& speaker, const std::string& text) {
     const int box_height = 185;
-    const int box_y = height_ - box_height;
-    const int padding = 40;
-    (void)padding;
 
     SDL_Texture* tb_tex = load_texture("gui/textbox.png");
     if (tb_tex) {
@@ -190,6 +201,7 @@ void SdlBackend::render_textbox(const std::string& speaker, const std::string& t
         SDL_Rect tb_dst = {(width_ - draw_w) / 2, height_ - draw_h - 10, draw_w, draw_h};
         SDL_RenderCopy(renderer_, tb_tex, nullptr, &tb_dst);
     } else {
+        int box_y = height_ - box_height;
         SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_BLEND);
         SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 200);
         SDL_Rect box = {0, box_y, width_, box_height};
@@ -238,16 +250,11 @@ void SdlBackend::render_choices(const std::vector<std::string>& options, int hig
     SDL_Texture* idle_bg = load_texture("gui/button/choice_idle_background.png");
     SDL_Texture* hover_bg = load_texture("gui/button/choice_hover_background.png");
 
-    const int item_h = 54;
-    const int item_spacing = 8;
-    const int item_w = width_ * 3 / 5;
-    const int item_x = (width_ - item_w) / 2;
-    const int total_h = static_cast<int>(options.size()) * (item_h + item_spacing) - item_spacing;
-    int start_y = (height_ - total_h) / 2;
+    ChoiceLayout layout(width_, height_, static_cast<int>(options.size()));
 
     for (int i = 0; i < static_cast<int>(options.size()); ++i) {
-        int item_y = start_y + i * (item_h + item_spacing);
-        SDL_Rect dst = {item_x, item_y, item_w, item_h};
+        int iy = layout.item_y(i);
+        SDL_Rect dst = {layout.item_x, iy, layout.item_w, ChoiceLayout::kItemH};
 
         SDL_Texture* bg = (i == highlight) ? hover_bg : idle_bg;
         if (bg) {
@@ -268,10 +275,11 @@ void SdlBackend::render_choices(const std::vector<std::string>& options, int hig
                                            : SDL_Color{50, 30, 50, 255};
         const std::string label = options[static_cast<std::size_t>(i)];
         SDL_Surface* surface = TTF_RenderUTF8_Blended_Wrapped(
-            font_, label.c_str(), color, static_cast<Uint32>(item_w - 40));
+            font_, label.c_str(), color, static_cast<Uint32>(layout.item_w - 40));
         if (surface) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer_, surface);
-            SDL_Rect text_dst = {item_x + 20, item_y + (item_h - surface->h) / 2,
+            SDL_Rect text_dst = {layout.item_x + 20,
+                                 iy + (ChoiceLayout::kItemH - surface->h) / 2,
                                  surface->w, surface->h};
             SDL_RenderCopy(renderer_, tex, nullptr, &text_dst);
             SDL_DestroyTexture(tex);
@@ -323,28 +331,95 @@ FlowSignal SdlBackend::wait_for_advance() {
     return FlowSignal::Quit;
 }
 
-FlowSignal SdlBackend::say(const std::string& speaker, const std::string& text) {
+// ─── Typewriter effect ───────────────────────────────────────────────────────
+
+FlowSignal SdlBackend::render_typewriter(const std::string& speaker, const std::string& text) {
+    auto offsets = utf8_char_offsets(text);
+    std::size_t total_chars = offsets.size() - 1;
+
+    if (total_chars == 0) {
+        render_frame();
+        render_textbox(speaker, "");
+        return wait_for_advance();
+    }
+
+    int delay_ms = 101 - text_speed_;
+    if (delay_ms < 1) delay_ms = 1;
+    Uint32 start_time = SDL_GetTicks();
+    bool completed = false;
+
+    while (running_ && !completed) {
+        Uint32 elapsed = SDL_GetTicks() - start_time;
+        std::size_t target = std::min(
+            static_cast<std::size_t>(elapsed / static_cast<Uint32>(delay_ms)), total_chars);
+
+        std::string partial = text.substr(0, offsets[target]);
+        render_frame();
+        render_textbox(speaker, partial);
+        SDL_RenderPresent(renderer_);
+
+        if (target >= total_chars) {
+            completed = true;
+            break;
+        }
+
+        SDL_Event event;
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT) {
+                running_ = false;
+                return FlowSignal::Quit;
+            }
+            if (event.type == SDL_KEYDOWN) {
+                if (event.key.keysym.sym == SDLK_ESCAPE) {
+                    GameSettings settings;
+                    settings.music_volume = music_volume_ * 100 / MIX_MAX_VOLUME;
+                    settings.sfx_volume = sfx_volume_ * 100 / MIX_MAX_VOLUME;
+                    PauseAction action = show_pause_menu();
+                    if (action == PauseAction::Quit) return FlowSignal::Quit;
+                    if (action == PauseAction::MainMenu) return FlowSignal::MainMenu;
+                    if (action == PauseAction::Settings) {
+                        show_settings(settings);
+                        apply_settings(settings);
+                    }
+                    completed = true;
+                } else {
+                    completed = true;
+                }
+            }
+            if (event.type == SDL_MOUSEBUTTONDOWN) {
+                completed = true;
+            }
+        }
+        SDL_Delay(16);
+    }
+
     render_frame();
     render_textbox(speaker, text);
     return wait_for_advance();
 }
 
+FlowSignal SdlBackend::say(const std::string& speaker, const std::string& text) {
+    if (text_speed_ == 0) {
+        render_frame();
+        render_textbox(speaker, text);
+        return wait_for_advance();
+    }
+    return render_typewriter(speaker, text);
+}
+
+// ─── Choice menu ─────────────────────────────────────────────────────────────
+
 ChoiceResult SdlBackend::choose(const std::vector<std::string>& options) {
     int selected = 0;
-
-    const int item_h = 54;
-    const int item_spacing = 8;
-    const int item_w = width_ * 3 / 5;
-    const int item_x = (width_ - item_w) / 2;
-    const int total_h = static_cast<int>(options.size()) * (item_h + item_spacing) - item_spacing;
-    const int start_y = (height_ - total_h) / 2;
+    ChoiceLayout layout(width_, height_, static_cast<int>(options.size()));
 
     while (running_) {
         int mx, my;
         SDL_GetMouseState(&mx, &my);
         for (int i = 0; i < static_cast<int>(options.size()); ++i) {
-            int iy = start_y + i * (item_h + item_spacing);
-            if (mx >= item_x && mx < item_x + item_w && my >= iy && my < iy + item_h) {
+            int iy = layout.item_y(i);
+            if (mx >= layout.item_x && mx < layout.item_x + layout.item_w &&
+                my >= iy && my < iy + ChoiceLayout::kItemH) {
                 selected = i;
                 break;
             }
@@ -386,9 +461,11 @@ ChoiceResult SdlBackend::choose(const std::vector<std::string>& options) {
             }
             if (event.type == SDL_MOUSEBUTTONDOWN) {
                 for (int i = 0; i < static_cast<int>(options.size()); ++i) {
-                    int iy = start_y + i * (item_h + item_spacing);
-                    if (event.button.x >= item_x && event.button.x < item_x + item_w &&
-                        event.button.y >= iy && event.button.y < iy + item_h) {
+                    int iy = layout.item_y(i);
+                    if (event.button.x >= layout.item_x &&
+                        event.button.x < layout.item_x + layout.item_w &&
+                        event.button.y >= iy &&
+                        event.button.y < iy + ChoiceLayout::kItemH) {
                         return {i, FlowSignal::Continue};
                     }
                 }
@@ -399,6 +476,8 @@ ChoiceResult SdlBackend::choose(const std::vector<std::string>& options) {
 
     return {0, FlowSignal::Quit};
 }
+
+// ─── Scene / sprite management ───────────────────────────────────────────────
 
 void SdlBackend::show_background(const std::string& image_path) {
     background_ = load_texture(image_path);
@@ -426,6 +505,8 @@ void SdlBackend::on_scene_changed(const std::string& /*room_id*/) {
     sprites_.clear();
 }
 
+// ─── Audio ───────────────────────────────────────────────────────────────────
+
 void SdlBackend::play_music(const std::string& path, int fadein_ms, bool noloop, double volume) {
     if (path == current_music_path_ && Mix_PlayingMusic()) {
         if (volume >= 0.0) {
@@ -436,14 +517,11 @@ void SdlBackend::play_music(const std::string& path, int fadein_ms, bool noloop,
     }
 
     Mix_HaltMusic();
-    if (current_music_) {
-        Mix_FreeMusic(current_music_);
-        current_music_ = nullptr;
-        current_music_path_.clear();
-    }
+    current_music_.reset();
+    current_music_path_.clear();
 
     const std::string full_path = resolve_path(path);
-    current_music_ = Mix_LoadMUS(full_path.c_str());
+    current_music_.reset(Mix_LoadMUS(full_path.c_str()));
     if (!current_music_) {
         std::cerr << "Failed to load music: " << full_path << " (" << Mix_GetError() << ")\n";
         return;
@@ -457,15 +535,14 @@ void SdlBackend::play_music(const std::string& path, int fadein_ms, bool noloop,
     int loops = noloop ? 0 : -1;
     int result;
     if (fadein_ms > 0) {
-        result = Mix_FadeInMusic(current_music_, loops, fadein_ms);
+        result = Mix_FadeInMusic(current_music_.get(), loops, fadein_ms);
     } else {
-        result = Mix_PlayMusic(current_music_, loops);
+        result = Mix_PlayMusic(current_music_.get(), loops);
     }
 
     if (result < 0) {
         std::cerr << "Failed to play music: " << Mix_GetError() << '\n';
-        Mix_FreeMusic(current_music_);
-        current_music_ = nullptr;
+        current_music_.reset();
         return;
     }
     current_music_path_ = path;
@@ -478,8 +555,7 @@ void SdlBackend::stop_music(int fadeout_ms) {
         Mix_FadeOutMusic(fadeout_ms);
     } else {
         Mix_HaltMusic();
-        Mix_FreeMusic(current_music_);
-        current_music_ = nullptr;
+        current_music_.reset();
     }
     current_music_path_.clear();
 }
@@ -489,7 +565,7 @@ void SdlBackend::play_sound(const std::string& path, bool loop) {
     Mix_Chunk* chunk = nullptr;
 
     if (it != chunk_cache_.end()) {
-        chunk = it->second;
+        chunk = it->second.get();
     } else {
         const std::string full_path = resolve_path(path);
         chunk = Mix_LoadWAV(full_path.c_str());
@@ -497,7 +573,7 @@ void SdlBackend::play_sound(const std::string& path, bool loop) {
             std::cerr << "Failed to load sound: " << full_path << " (" << Mix_GetError() << ")\n";
             return;
         }
-        chunk_cache_[path] = chunk;
+        chunk_cache_[path] = sdl_raii::ChunkPtr(chunk);
     }
 
     Mix_VolumeChunk(chunk, sfx_volume_);

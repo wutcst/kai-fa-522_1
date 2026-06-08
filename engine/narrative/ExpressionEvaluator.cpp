@@ -1,5 +1,7 @@
 #include "engine/narrative/ExpressionEvaluator.hpp"
 
+#include <stdexcept>
+
 namespace novel::narrative {
 
 ExpressionEvaluator::ExpressionEvaluator(core::Context& context, BuiltinApi& api)
@@ -68,6 +70,8 @@ core::Value ExpressionEvaluator::evaluate(const script::Expr& expr) const {
         case script::BinaryOp::Mul:
             return core::Value::from_number(left * right);
         case script::BinaryOp::Div:
+            if (right == 0.0)
+                throw std::runtime_error("Division by zero in script expression");
             return core::Value::from_number(left / right);
         case script::BinaryOp::Lt:
             return core::Value::from_bool(left < right);

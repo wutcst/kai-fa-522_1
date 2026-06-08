@@ -421,6 +421,7 @@ PauseAction SdlBackend::show_pause_menu() {
 void SdlBackend::apply_settings(const GameSettings& settings) {
     music_volume_ = settings.music_volume * MIX_MAX_VOLUME / 100;
     sfx_volume_ = settings.sfx_volume * MIX_MAX_VOLUME / 100;
+    text_speed_ = settings.text_speed;
     Mix_VolumeMusic(music_volume_);
 
     if (window_) {
