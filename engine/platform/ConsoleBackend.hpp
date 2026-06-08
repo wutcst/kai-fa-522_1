@@ -21,6 +21,11 @@ public:
     void stop_music(int fadeout_ms = 0) override;
     void play_sound(const std::string& path, bool loop = false) override;
     void stop_sound() override;
+    void play_ambient(const std::string& path) override;
+    void stop_ambient() override;
+    void glitch(const std::string& type, int duration_ms = 300) override;
+    void set_window_title(const std::string& title) override;
+    void reset_window_title() override;
 
     MenuAction show_main_menu() override;
     void show_settings(GameSettings& settings) override;

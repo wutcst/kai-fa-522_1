@@ -237,7 +237,29 @@ StmtPtr Parser::parse_statement() {
         return std::make_unique<HideStmt>(tag);
     }
 
+    if (match_keyword("glitch")) {
+        const std::string type = advance().text;
+        int duration_ms = 300;
+        if (check(TokenKind::Number)) {
+            duration_ms = static_cast<int>(advance().number);
+        }
+        return std::make_unique<GlitchStmt>(type, duration_ms);
+    }
+
+    if (match_keyword("window")) {
+        expect_keyword("title");
+        if (match_keyword("reset")) {
+            return std::make_unique<WindowTitleStmt>("", true);
+        }
+        const std::string title = advance().text;
+        return std::make_unique<WindowTitleStmt>(title);
+    }
+
     if (match_keyword("play")) {
+        if (match_keyword("ambient")) {
+            const std::string path = advance().text;
+            return std::make_unique<PlayAmbientStmt>(path);
+        }
         if (match_keyword("music")) {
             const std::string path = advance().text;
             double fadein = 0.0;
@@ -268,6 +290,9 @@ StmtPtr Parser::parse_statement() {
     }
 
     if (match_keyword("stop")) {
+        if (match_keyword("ambient")) {
+            return std::make_unique<StopAmbientStmt>();
+        }
         if (match_keyword("music")) {
             double fadeout = 0.0;
             if (match_keyword("fadeout")) {

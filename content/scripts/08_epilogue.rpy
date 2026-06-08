@@ -90,6 +90,10 @@ label epilogue:
 
     bg "images/bg/notebook.png"
     play music "audio/bgm/monika-end.ogg"
+    play sound "audio/sfx/pageflip.ogg"
+    play ambient "audio/sfx/glitch_ambient2.ogg"
+    glitch vignette 500
+    window title "Just Monika"
 
     "..."
 
@@ -121,13 +125,20 @@ label epilogue:
 
     "'...'"
 
+    glitch tear 300
+
     "'Thank you for playing.'"
+
+    window title "Thank you for playing"
 
     "'Thank you for remembering.'"
 
     "'And thank you... for loving us.'"
 
     "'— Monika'"
+
+    window title reset
+    stop ambient
 
     "..."
 

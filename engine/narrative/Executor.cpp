@@ -171,6 +171,33 @@ bool Executor::execute_statement(const script::Stmt& stmt, std::vector<Frame>& f
         return true;
     }
 
+    case Kind::PlayAmbient: {
+        auto& s = static_cast<const script::PlayAmbientStmt&>(stmt);
+        backend_.play_ambient(s.path);
+        return true;
+    }
+
+    case Kind::StopAmbient: {
+        backend_.stop_ambient();
+        return true;
+    }
+
+    case Kind::Glitch: {
+        auto& s = static_cast<const script::GlitchStmt&>(stmt);
+        backend_.glitch(s.type, s.duration_ms);
+        return true;
+    }
+
+    case Kind::WindowTitle: {
+        auto& s = static_cast<const script::WindowTitleStmt&>(stmt);
+        if (s.reset) {
+            backend_.reset_window_title();
+        } else {
+            backend_.set_window_title(s.title);
+        }
+        return true;
+    }
+
     case Kind::Dialogue: {
         auto& s = static_cast<const script::DialogueStmt&>(stmt);
         auto signal = backend_.say(s.speaker, evaluate_text(*s.text));

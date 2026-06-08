@@ -160,6 +160,9 @@ label day3_club:
 
     "That's what it always said."
 
+    play sound "audio/sfx/pageflip.ogg"
+    glitch noise 200
+
     $ strange_poem_read = true
     $ glitch_count = glitch_count + 1
 
@@ -202,6 +205,10 @@ label day3_club:
     "But then—"
 
     play sound "audio/sfx/glitch1.ogg"
+    play ambient "audio/sfx/glitch_ambient1.ogg"
+    glitch tear 350
+    glitch invert 200
+    window title "WHY"
 
     "A sound cuts through the air."
 
@@ -213,9 +220,14 @@ label day3_club:
 
     "And on the whiteboard — just for an instant, letters appear:"
 
+    glitch noise 250
+
     "'BUT YOU CHOSE THEM OVER ME'"
 
     "Then gone. White. Clean."
+
+    window title reset
+    stop ambient
 
     "..."
 

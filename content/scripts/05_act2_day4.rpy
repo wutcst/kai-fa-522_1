@@ -91,7 +91,11 @@ label day4_club:
 
     "The notebook is there. Same as always."
 
+    play sound "audio/sfx/pageflip.ogg"
+
     "I pick it up. Open it."
+
+    play ambient "audio/sfx/glitch_ambient2.ogg"
 
     "..."
 
@@ -123,7 +127,12 @@ label day4_club:
 
     "..."
 
+    play sound "audio/sfx/pageflip.ogg"
+    glitch vignette 300
+
     "I close the notebook carefully."
+
+    stop ambient
 
     "The door slides open."
 

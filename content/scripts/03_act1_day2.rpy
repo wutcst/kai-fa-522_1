@@ -419,12 +419,18 @@ label day2_evening:
 
     "And in the space between waking and dreaming, I hear it again."
 
+    play ambient "audio/sfx/glitch_ambient1.ogg"
+    glitch vignette 500
+    window title "CAN YOU HEAR ME"
+
     "Static. A voice within the static."
 
     "'...don't... forget... me...'"
 
     "'...please...'"
 
+    window title reset
+    stop ambient
     stop music
 
     "..."

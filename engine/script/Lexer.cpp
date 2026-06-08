@@ -13,8 +13,9 @@ const std::unordered_set<std::string> kKeywords = {
     "if",       "elif",        "else",    "jump",    "call",    "return",
     "scene",    "go",          "and",     "or",      "not",     "true",
     "false",    "define",      "bg",      "show",    "hide",    "play",
-    "stop",     "music",       "sound",   "at",      "fadein",  "fadeout",
-    "noloop",   "loop",        "volume",
+    "stop",     "music",       "sound",   "ambient", "at",      "fadein",
+    "fadeout",  "noloop",      "loop",    "volume",  "glitch",  "window",
+    "title",    "reset",
 };
 
 } // namespace

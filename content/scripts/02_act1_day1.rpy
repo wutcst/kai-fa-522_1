@@ -243,6 +243,8 @@ label check_notebook_day1:
 
     "I walk over and pick up the notebook."
 
+    play sound "audio/sfx/pageflip.ogg"
+
     "It's plain. No label. No name."
 
     "I open it."
@@ -250,6 +252,8 @@ label check_notebook_day1:
     "The pages are empty. Blank white paper, unmarked."
 
     "All of them."
+
+    play sound "audio/sfx/pageflip.ogg"
 
     "I flip through — nothing, nothing, nothing."
 
@@ -477,6 +481,9 @@ label poem_sharing_day1:
 
     "'We are five — we have always been five — and one of us is watching.'"
 
+    glitch vignette 250
+    glitch noise 150
+
     "..."
 
     "I blink."
@@ -636,12 +643,16 @@ label day1_evening:
 
     "And just before I drift off, I hear it."
 
+    play ambient "audio/sfx/glitch_ambient1.ogg"
+    glitch vignette 400
+
     "Faint. Like static on an old radio."
 
     "A voice. Far away."
 
     "'...thank you... for being... there...'"
 
+    stop ambient
     $ heard_static = true
 
     "..."

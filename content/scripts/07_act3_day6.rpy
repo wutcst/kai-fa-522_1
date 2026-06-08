@@ -255,7 +255,11 @@ label day6_ending:
 
     "..."
 
+    play ambient "audio/sfx/glitch_ambient2.ogg"
+
     "'Thank you, Monika.'"
+
+    glitch vignette 350
 
     "I say it out loud, to the evening air."
 
@@ -270,6 +274,9 @@ label day6_ending:
     "And in the wind, barely there — barely real:"
 
     "'I know you will.'"
+
+    stop ambient
+    window title reset
 
     "..."
 

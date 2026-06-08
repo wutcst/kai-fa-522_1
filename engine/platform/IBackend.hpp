@@ -65,6 +65,21 @@ public:
 
     /// Stop all sound effect channels.
     virtual void stop_sound() = 0;
+
+    /// Play looping ambient sound on a dedicated channel.
+    virtual void play_ambient(const std::string& path) = 0;
+
+    /// Stop the ambient sound channel.
+    virtual void stop_ambient() = 0;
+
+    /// Trigger a full-screen visual glitch effect for duration_ms.
+    virtual void glitch(const std::string& type, int duration_ms = 300) = 0;
+
+    /// Change the window title (SDL backend only).
+    virtual void set_window_title(const std::string& title) = 0;
+
+    /// Restore the default window title.
+    virtual void reset_window_title() = 0;
 };
 
 } // namespace novel::platform

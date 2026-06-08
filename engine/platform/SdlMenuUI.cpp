@@ -526,6 +526,7 @@ void SdlBackend::apply_settings(const GameSettings& settings) {
     if (target_w != width_ || target_h != height_) {
         width_ = target_w;
         height_ = target_h;
+        release_scene_target();
         reload_fonts();
     }
 }

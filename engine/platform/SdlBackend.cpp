@@ -3,6 +3,8 @@
 #include <SDL_mixer.h>
 
 #include <algorithm>
+#include <cmath>
+#include <cstdlib>
 #include <filesystem>
 #include <iostream>
 #include <stdexcept>
@@ -129,6 +131,7 @@ void SdlBackend::shutdown() {
     sprites_.clear();
     background_ = nullptr;
     texture_cache_.clear();
+    release_scene_target();
 
     if (font_title_ && font_title_ != font_) TTF_CloseFont(font_title_);
     if (font_small_ && font_small_ != font_) TTF_CloseFont(font_small_);
@@ -591,13 +594,237 @@ void SdlBackend::play_sound(const std::string& path, bool loop) {
 
     Mix_VolumeChunk(chunk, sfx_volume_);
     int loops = loop ? -1 : 0;
-    if (Mix_PlayChannel(-1, chunk, loops) < 0) {
+    int channel = -1;
+    for (int ch = 1; ch < 16; ++ch) {
+        if (!Mix_Playing(ch)) {
+            channel = ch;
+            break;
+        }
+    }
+    if (Mix_PlayChannel(channel, chunk, loops) < 0) {
         std::cerr << "Failed to play sound: " << Mix_GetError() << '\n';
     }
 }
 
 void SdlBackend::stop_sound() {
-    Mix_HaltChannel(-1);
+    for (int ch = 1; ch < 16; ++ch) {
+        Mix_HaltChannel(ch);
+    }
+}
+
+void SdlBackend::play_ambient(const std::string& path) {
+    if (path == ambient_path_ && Mix_Playing(kAmbientChannel)) {
+        return;
+    }
+
+    Mix_HaltChannel(kAmbientChannel);
+
+    auto it = chunk_cache_.find(path);
+    Mix_Chunk* chunk = nullptr;
+
+    if (it != chunk_cache_.end()) {
+        chunk = it->second.get();
+    } else {
+        const std::string full_path = resolve_path(path);
+        chunk = Mix_LoadWAV(full_path.c_str());
+        if (!chunk) {
+            std::cerr << "Failed to load ambient: " << full_path << " (" << Mix_GetError() << ")\n";
+            return;
+        }
+        chunk_cache_[path] = sdl_raii::ChunkPtr(chunk);
+    }
+
+    const int ambient_volume = std::max(sfx_volume_ / 3, MIX_MAX_VOLUME / 8);
+    Mix_VolumeChunk(chunk, ambient_volume);
+    if (Mix_PlayChannel(kAmbientChannel, chunk, -1) < 0) {
+        std::cerr << "Failed to play ambient: " << Mix_GetError() << '\n';
+        return;
+    }
+    ambient_path_ = path;
+}
+
+void SdlBackend::stop_ambient() {
+    Mix_HaltChannel(kAmbientChannel);
+    ambient_path_.clear();
+}
+
+void SdlBackend::ensure_scene_target() {
+    if (scene_target_) {
+        int tw = 0;
+        int th = 0;
+        SDL_QueryTexture(scene_target_, nullptr, nullptr, &tw, &th);
+        if (tw == width_ && th == height_) {
+            return;
+        }
+        release_scene_target();
+    }
+
+    scene_target_ = SDL_CreateTexture(renderer_, SDL_PIXELFORMAT_RGBA8888,
+                                      SDL_TEXTUREACCESS_TARGET, width_, height_);
+    if (!scene_target_) {
+        std::cerr << "Failed to create scene target: " << SDL_GetError() << '\n';
+    }
+}
+
+void SdlBackend::release_scene_target() {
+    if (scene_target_) {
+        SDL_DestroyTexture(scene_target_);
+        scene_target_ = nullptr;
+    }
+}
+
+void SdlBackend::capture_scene_to_target() {
+    ensure_scene_target();
+    if (!scene_target_) {
+        return;
+    }
+
+    SDL_SetRenderTarget(renderer_, scene_target_);
+    SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 255);
+    SDL_RenderClear(renderer_);
+    render_background();
+    render_sprites();
+    SDL_SetRenderTarget(renderer_, nullptr);
+}
+
+void SdlBackend::blit_scene_normal() {
+    if (!scene_target_) {
+        render_background();
+        render_sprites();
+        return;
+    }
+    SDL_RenderCopy(renderer_, scene_target_, nullptr, nullptr);
+}
+
+void SdlBackend::render_tear_effect(float intensity) {
+    if (!scene_target_) {
+        return;
+    }
+
+    const int bands = std::max(4, 8 + static_cast<int>(intensity * 8.0f));
+    const int band_h = std::max(1, height_ / bands);
+
+    for (int i = 0; i < bands; ++i) {
+        const int y = i * band_h;
+        const int h = (i == bands - 1) ? height_ - y : band_h;
+        const int offset = static_cast<int>((std::rand() % 41 - 20) * intensity * sx(2));
+        const SDL_Rect src = {0, y, width_, h};
+        const SDL_Rect dst = {offset, y, width_, h};
+        SDL_RenderCopy(renderer_, scene_target_, &src, &dst);
+    }
+}
+
+void SdlBackend::render_noise_overlay(float intensity) {
+    SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_BLEND);
+    const int count = std::max(20, static_cast<int>(width_ * height_ * intensity / 90.0f));
+
+    for (int n = 0; n < count; ++n) {
+        const int x = std::rand() % width_;
+        const int y = std::rand() % height_;
+        const Uint8 alpha = static_cast<Uint8>(80 + std::rand() % 120);
+        SDL_SetRenderDrawColor(renderer_, std::rand() % 256, std::rand() % 256,
+                               std::rand() % 256, alpha);
+        const SDL_Rect rect = {x, y, 1 + std::rand() % std::max(2, sx(4)),
+                               1 + std::rand() % std::max(2, sy(4))};
+        SDL_RenderFillRect(renderer_, &rect);
+    }
+}
+
+void SdlBackend::render_vignette_overlay(float intensity) {
+    SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_BLEND);
+    const Uint8 alpha = static_cast<Uint8>(std::min(220.0f, 100.0f + intensity * 120.0f));
+    const int margin = static_cast<int>(sx(60) + intensity * sx(80));
+    SDL_SetRenderDrawColor(renderer_, 0, 0, 0, alpha);
+
+    const SDL_Rect top = {0, 0, width_, margin};
+    const SDL_Rect bottom = {0, height_ - margin, width_, margin};
+    const SDL_Rect left = {0, 0, margin, height_};
+    const SDL_Rect right = {width_ - margin, 0, margin, height_};
+    SDL_RenderFillRect(renderer_, &top);
+    SDL_RenderFillRect(renderer_, &bottom);
+    SDL_RenderFillRect(renderer_, &left);
+    SDL_RenderFillRect(renderer_, &right);
+}
+
+void SdlBackend::render_invert_effect(float intensity) {
+    if (!scene_target_) {
+        return;
+    }
+
+    const int shift = std::max(1, static_cast<int>(sx(4) * intensity * (1 + std::rand() % 3)));
+
+    SDL_SetTextureColorMod(scene_target_, 80, 255, 120);
+    const SDL_Rect dst_green = {shift, 0, width_, height_};
+    SDL_RenderCopy(renderer_, scene_target_, nullptr, &dst_green);
+
+    SDL_SetTextureColorMod(scene_target_, 255, 80, 220);
+    const SDL_Rect dst_magenta = {-shift, 0, width_, height_};
+    SDL_RenderCopy(renderer_, scene_target_, nullptr, &dst_magenta);
+    SDL_SetTextureColorMod(scene_target_, 255, 255, 255);
+
+    if (intensity > 0.45f) {
+        SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_BLEND);
+        const Uint8 flash = static_cast<Uint8>(std::min(220.0f, (intensity - 0.45f) * 2.0f * 200.0f));
+        SDL_SetRenderDrawColor(renderer_, 255, 255, 255, flash);
+        const SDL_Rect full = {0, 0, width_, height_};
+        SDL_RenderFillRect(renderer_, &full);
+    }
+}
+
+void SdlBackend::glitch(const std::string& type, int duration_ms) {
+    if (!renderer_ || duration_ms <= 0) {
+        return;
+    }
+
+    capture_scene_to_target();
+    const Uint32 end_time = SDL_GetTicks() + static_cast<Uint32>(duration_ms);
+
+    while (running_ && SDL_GetTicks() < end_time) {
+        const float elapsed = static_cast<float>(SDL_GetTicks() + duration_ms - end_time);
+        const float progress = elapsed / static_cast<float>(duration_ms);
+        const float intensity = 0.45f + 0.55f * std::fabs(std::sin(progress * 3.14159265f * 6.0f));
+
+        SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 255);
+        SDL_RenderClear(renderer_);
+
+        if (type == "tear") {
+            render_tear_effect(intensity);
+        } else if (type == "invert" || type == "color") {
+            blit_scene_normal();
+            render_invert_effect(intensity);
+        } else if (type == "noise") {
+            blit_scene_normal();
+            render_noise_overlay(intensity);
+        } else if (type == "vignette") {
+            blit_scene_normal();
+            render_vignette_overlay(intensity);
+        } else {
+            render_tear_effect(intensity * 0.7f);
+            render_noise_overlay(intensity * 0.5f);
+            render_vignette_overlay(intensity * 0.6f);
+        }
+
+        SDL_RenderPresent(renderer_);
+
+        SDL_Event event;
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT) {
+                running_ = false;
+                return;
+            }
+        }
+        SDL_Delay(16);
+    }
+}
+
+void SdlBackend::set_window_title(const std::string& title) {
+    if (window_) {
+        SDL_SetWindowTitle(window_, title.c_str());
+    }
+}
+
+void SdlBackend::reset_window_title() {
+    set_window_title(title_);
 }
 
 } // namespace novel::platform

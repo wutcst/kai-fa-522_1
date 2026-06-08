@@ -98,6 +98,7 @@ struct Stmt {
     enum class Kind {
         Say, Assign, Jump, Call, Return, Scene, Go,
         Bg, Show, Hide, PlayMusic, StopMusic, StopSound, PlaySound,
+        PlayAmbient, StopAmbient, Glitch, WindowTitle,
         Dialogue, If, Menu,
     };
 
@@ -198,6 +199,30 @@ struct PlaySoundStmt : Stmt {
     bool loop = false;
     PlaySoundStmt(std::string path, bool loop = false)
         : Stmt(Kind::PlaySound), path(std::move(path)), loop(loop) {}
+};
+
+struct PlayAmbientStmt : Stmt {
+    std::string path;
+    explicit PlayAmbientStmt(std::string path)
+        : Stmt(Kind::PlayAmbient), path(std::move(path)) {}
+};
+
+struct StopAmbientStmt : Stmt {
+    StopAmbientStmt() : Stmt(Kind::StopAmbient) {}
+};
+
+struct GlitchStmt : Stmt {
+    std::string type;
+    int duration_ms = 300;
+    GlitchStmt(std::string type, int duration_ms = 300)
+        : Stmt(Kind::Glitch), type(std::move(type)), duration_ms(duration_ms) {}
+};
+
+struct WindowTitleStmt : Stmt {
+    std::string title;
+    bool reset = false;
+    explicit WindowTitleStmt(std::string title, bool reset = false)
+        : Stmt(Kind::WindowTitle), title(std::move(title)), reset(reset) {}
 };
 
 struct DialogueStmt : Stmt {

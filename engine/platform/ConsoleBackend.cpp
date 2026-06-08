@@ -50,6 +50,11 @@ void ConsoleBackend::play_music(const std::string& /*path*/, int /*fadein_ms*/,
 void ConsoleBackend::stop_music(int /*fadeout_ms*/) {}
 void ConsoleBackend::play_sound(const std::string& /*path*/, bool /*loop*/) {}
 void ConsoleBackend::stop_sound() {}
+void ConsoleBackend::play_ambient(const std::string& /*path*/) {}
+void ConsoleBackend::stop_ambient() {}
+void ConsoleBackend::glitch(const std::string& /*type*/, int /*duration_ms*/) {}
+void ConsoleBackend::set_window_title(const std::string& /*title*/) {}
+void ConsoleBackend::reset_window_title() {}
 
 MenuAction ConsoleBackend::show_main_menu() {
     std::cout << "\n=== DOKI DOKI LITERATURE CLUB: AFTER STORY ===\n";

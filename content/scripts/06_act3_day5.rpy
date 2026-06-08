@@ -123,6 +123,8 @@ label day5_bookstore:
 
     "But the receipt lists the item as: '???'"
 
+    play sound "audio/sfx/pageflip.ogg"
+    glitch noise 200
     $ glitch_count = glitch_count + 1
 
     "After shopping, we reconvene at a crepe stand."
@@ -239,9 +241,14 @@ label day5_evening:
 
     "And in my dreams, for just a moment, I'm in the clubroom."
 
+    play ambient "audio/sfx/glitch_ambient2.ogg"
+    glitch vignette 400
+
     "Five desks. Five chairs."
 
     "And sitting at the corner desk, writing in her notebook..."
+
+    play sound "audio/sfx/pageflip.ogg"
 
     "A girl with green eyes and a gentle smile."
 
@@ -249,9 +256,14 @@ label day5_evening:
 
     "She sees me."
 
+    window title "Are you still there?"
+
     "'Thank you,' she mouths."
 
     "'For everything.'"
+
+    window title reset
+    stop ambient
 
     "..."
 

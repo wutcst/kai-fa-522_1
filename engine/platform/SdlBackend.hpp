@@ -57,6 +57,11 @@ public:
     void stop_music(int fadeout_ms = 0) override;
     void play_sound(const std::string& path, bool loop = false) override;
     void stop_sound() override;
+    void play_ambient(const std::string& path) override;
+    void stop_ambient() override;
+    void glitch(const std::string& type, int duration_ms = 300) override;
+    void set_window_title(const std::string& title) override;
+    void reset_window_title() override;
 
     MenuAction show_main_menu() override;
     void show_settings(GameSettings& settings) override;
@@ -115,6 +120,18 @@ private:
     void play_ui_sound(const std::string& name);
     bool reload_fonts();
 
+    // ── Glitch / scene capture ───────────────────────────────────────────
+    static constexpr int kAmbientChannel = 0;
+
+    void ensure_scene_target();
+    void release_scene_target();
+    void capture_scene_to_target();
+    void blit_scene_normal();
+    void render_tear_effect(float intensity);
+    void render_noise_overlay(float intensity);
+    void render_vignette_overlay(float intensity);
+    void render_invert_effect(float intensity);
+
     // ── Window / renderer / fonts (manual cleanup due to aliasing) ──────
     int width_;
     int height_;
@@ -123,6 +140,7 @@ private:
 
     SDL_Window* window_ = nullptr;
     SDL_Renderer* renderer_ = nullptr;
+    SDL_Texture* scene_target_ = nullptr;
     TTF_Font* font_ = nullptr;
     TTF_Font* font_small_ = nullptr;
     TTF_Font* font_title_ = nullptr;
@@ -135,6 +153,7 @@ private:
     sdl_raii::MusicPtr current_music_;
     std::string current_music_path_;
     std::unordered_map<std::string, sdl_raii::ChunkPtr> chunk_cache_;
+    std::string ambient_path_;
 
     // ── Settings / state ─────────────────────────────────────────────────
     int music_volume_ = MIX_MAX_VOLUME;
