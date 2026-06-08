@@ -15,6 +15,8 @@ platform::FlowSignal Executor::run(const std::string& entry_label) {
     finished_ = false;
     pending_signal_ = platform::FlowSignal::Continue;
     return_stack_.clear();
+    current_label_ = entry_label;
+    current_index_ = 0;
 
     const script::Label* entry = find_label(entry_label);
     if (!entry) {
@@ -23,9 +25,47 @@ platform::FlowSignal Executor::run(const std::string& entry_label) {
 
     std::vector<Frame> frames;
     frames.push_back(Frame{&entry->body, 0});
+    return run_frames(std::move(frames));
+}
 
+platform::FlowSignal Executor::run_from_save(const core::GameSaveState& state) {
+    finished_ = false;
+    pending_signal_ = platform::FlowSignal::Continue;
+    return_stack_.clear();
+
+    for (const auto& [name, value] : state.variables) {
+        api_.context().set(name, value);
+    }
+
+    restore_visual_state(state);
+
+    const script::Label* entry = find_label(state.label);
+    if (!entry) {
+        throw std::runtime_error("unknown save label: " + state.label);
+    }
+
+    for (const auto& frame : state.return_stack) {
+        const script::Label* label = find_label(frame.label);
+        if (!label) {
+            throw std::runtime_error("unknown save return label: " + frame.label);
+        }
+        return_stack_.push_back(ReturnPoint{&label->body, frame.index});
+    }
+
+    current_label_ = state.label;
+    current_index_ = state.statement_index;
+
+    std::vector<Frame> frames;
+    frames.push_back(Frame{&entry->body, state.statement_index});
+    return run_frames(std::move(frames));
+}
+
+platform::FlowSignal Executor::run_frames(std::vector<Frame> frames) {
     while (!frames.empty() && !finished_) {
         Frame& frame = frames.back();
+        current_label_ = label_for_statements(frame.statements);
+        current_index_ = frame.index;
+
         if (frame.index >= frame.statements->size()) {
             frames.pop_back();
             if (frames.empty()) {
@@ -47,6 +87,60 @@ platform::FlowSignal Executor::run(const std::string& entry_label) {
     }
 
     return platform::FlowSignal::Continue;
+}
+
+std::string Executor::label_for_statements(const script::StmtList* list) const {
+    for (const auto& label : module_.labels) {
+        if (&label.body == list) {
+            return label.name;
+        }
+    }
+    return {};
+}
+
+core::GameSaveState Executor::capture_state(const std::string& current_label,
+                                            std::size_t current_index) const {
+    core::GameSaveState state;
+    state.label = current_label;
+    state.statement_index = current_index;
+    state.variables = api_.context().variables();
+    state.background = backend_.current_background();
+    state.sprites = backend_.current_sprites();
+
+    const core::Value day = api_.context().get("day");
+    if (!day.is_nil()) {
+        state.day = static_cast<int>(day.as_number());
+    }
+    const core::Value glitch_count = api_.context().get("glitch_count");
+    if (!glitch_count.is_nil()) {
+        state.glitch_count = static_cast<int>(glitch_count.as_number());
+    }
+    const core::Value save_generation = api_.context().get("save_generation");
+    if (!save_generation.is_nil()) {
+        state.save_generation = static_cast<int>(save_generation.as_number());
+    }
+
+    state.corrupted = state.day >= 3 || state.glitch_count >= 2;
+
+    for (const auto& point : return_stack_) {
+        core::ReturnFrame frame;
+        frame.label = label_for_statements(point.statements);
+        frame.index = point.index;
+        if (!frame.label.empty()) {
+            state.return_stack.push_back(frame);
+        }
+    }
+    return state;
+}
+
+void Executor::restore_visual_state(const core::GameSaveState& state) {
+    if (!state.background.empty()) {
+        backend_.show_background(state.background);
+    }
+    backend_.clear_sprites();
+    for (const auto& sprite : state.sprites) {
+        backend_.show_sprite(sprite.tag, sprite.path, sprite.position);
+    }
 }
 
 const script::Label* Executor::find_label(const std::string& name) const {
@@ -195,6 +289,12 @@ bool Executor::execute_statement(const script::Stmt& stmt, std::vector<Frame>& f
         } else {
             backend_.set_window_title(s.title);
         }
+        return true;
+    }
+
+    case Kind::FakeCrash: {
+        auto& s = static_cast<const script::FakeCrashStmt&>(stmt);
+        backend_.fake_crash(s.message);
         return true;
     }
 

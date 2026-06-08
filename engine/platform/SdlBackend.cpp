@@ -329,6 +329,12 @@ FlowSignal SdlBackend::wait_for_advance() {
                     if (action == PauseAction::MainMenu) {
                         return FlowSignal::MainMenu;
                     }
+                    if (action == PauseAction::Save) {
+                        return FlowSignal::SaveRequest;
+                    }
+                    if (action == PauseAction::Load) {
+                        return FlowSignal::LoadRequest;
+                    }
                     if (action == PauseAction::Settings) {
                         show_settings(settings);
                         apply_settings(settings);
@@ -393,6 +399,8 @@ FlowSignal SdlBackend::render_typewriter(const std::string& speaker, const std::
                     PauseAction action = show_pause_menu();
                     if (action == PauseAction::Quit) return FlowSignal::Quit;
                     if (action == PauseAction::MainMenu) return FlowSignal::MainMenu;
+                    if (action == PauseAction::Save) return FlowSignal::SaveRequest;
+                    if (action == PauseAction::Load) return FlowSignal::LoadRequest;
                     if (action == PauseAction::Settings) {
                         show_settings(settings);
                         apply_settings(settings);
@@ -496,6 +504,7 @@ ChoiceResult SdlBackend::choose(const std::vector<std::string>& options) {
 // ─── Scene / sprite management ───────────────────────────────────────────────
 
 void SdlBackend::show_background(const std::string& image_path) {
+    background_path_ = image_path;
     background_ = load_texture(image_path);
 }
 
@@ -510,7 +519,8 @@ void SdlBackend::show_sprite(const std::string& tag, const std::string& image_pa
     float scale = static_cast<float>(height_) / static_cast<float>(h);
     if (scale > 1.5f) scale = 1.5f;
 
-    sprites_[tag] = Sprite{tex, position, static_cast<int>(w * scale), static_cast<int>(h * scale)};
+    sprites_[tag] = Sprite{tex, image_path, position, static_cast<int>(w * scale),
+                           static_cast<int>(h * scale)};
 }
 
 void SdlBackend::hide_sprite(const std::string& tag) {
@@ -825,6 +835,218 @@ void SdlBackend::set_window_title(const std::string& title) {
 
 void SdlBackend::reset_window_title() {
     set_window_title(title_);
+}
+
+std::string SdlBackend::current_background() const {
+    return background_path_;
+}
+
+std::vector<core::GameSaveState::SpriteState> SdlBackend::current_sprites() const {
+    std::vector<core::GameSaveState::SpriteState> sprites;
+    sprites.reserve(sprites_.size());
+    for (const auto& [tag, sprite] : sprites_) {
+        core::GameSaveState::SpriteState state;
+        state.tag = tag;
+        state.path = sprite.image_path;
+        state.position = sprite.position;
+        sprites.push_back(std::move(state));
+    }
+    return sprites;
+}
+
+void SdlBackend::clear_sprites() {
+    sprites_.clear();
+}
+
+void SdlBackend::fake_crash(const std::string& message) {
+    if (!renderer_) {
+        return;
+    }
+
+    glitch("noise", 120);
+
+    SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 255);
+    SDL_RenderClear(renderer_);
+
+    const std::string header = "ddlc_afterstory: fatal error";
+    const std::string body = message.empty() ? "Segmentation fault (core dumped)" : message;
+    const std::string footer = "Press any key to continue...";
+
+    SDL_Color header_color = {220, 60, 60, 255};
+    SDL_Color body_color = {230, 230, 230, 255};
+    SDL_Color footer_color = {140, 140, 140, 255};
+
+    int y = sy(80);
+    if (font_small_) {
+        SDL_Surface* header_surf = TTF_RenderUTF8_Blended(font_small_, header.c_str(), header_color);
+        if (header_surf) {
+            SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer_, header_surf);
+            SDL_Rect dst = {sx(60), y, header_surf->w, header_surf->h};
+            SDL_RenderCopy(renderer_, tex, nullptr, &dst);
+            SDL_DestroyTexture(tex);
+            SDL_FreeSurface(header_surf);
+            y += sy(40);
+        }
+
+        SDL_Surface* body_surf =
+            TTF_RenderUTF8_Blended_Wrapped(font_small_, body.c_str(), body_color, width_ - sx(120));
+        if (body_surf) {
+            SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer_, body_surf);
+            SDL_Rect dst = {sx(60), y, body_surf->w, body_surf->h};
+            SDL_RenderCopy(renderer_, tex, nullptr, &dst);
+            SDL_DestroyTexture(tex);
+            SDL_FreeSurface(body_surf);
+            y += body_surf->h + sy(30);
+        }
+
+        SDL_Surface* footer_surf = TTF_RenderUTF8_Blended(font_small_, footer.c_str(), footer_color);
+        if (footer_surf) {
+            SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer_, footer_surf);
+            SDL_Rect dst = {sx(60), y, footer_surf->w, footer_surf->h};
+            SDL_RenderCopy(renderer_, tex, nullptr, &dst);
+            SDL_DestroyTexture(tex);
+            SDL_FreeSurface(footer_surf);
+        }
+    }
+
+    SDL_RenderPresent(renderer_);
+
+    const Uint32 end_time = SDL_GetTicks() + 2500;
+    bool dismissed = false;
+    while (running_ && !dismissed && SDL_GetTicks() < end_time) {
+        SDL_Event event;
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT) {
+                running_ = false;
+                return;
+            }
+            if (event.type == SDL_KEYDOWN || event.type == SDL_MOUSEBUTTONDOWN) {
+                dismissed = true;
+                break;
+            }
+        }
+        SDL_Delay(16);
+    }
+
+    glitch("tear", 200);
+    set_window_title(title_);
+}
+
+int SdlBackend::show_slot_menu(bool saving, const std::vector<core::SaveSlotInfo>& slots) {
+    const std::string title = saving ? "Save Game" : "Load Game";
+    const int count = static_cast<int>(slots.size());
+
+    while (running_) {
+        const int panel_w = sx(520);
+        const int panel_h = sy(420);
+        const int panel_x = (width_ - panel_w) / 2;
+        const int panel_y = (height_ - panel_h) / 2;
+        const int row_h = sy(64);
+        const int row_spacing = sy(8);
+        const int row_x = panel_x + sx(30);
+        const int row_w = panel_w - sx(60);
+        const int row_y_start = panel_y + sy(70);
+
+        render_frame();
+
+        SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 170);
+        SDL_Rect full = {0, 0, width_, height_};
+        SDL_RenderFillRect(renderer_, &full);
+
+        SDL_SetRenderDrawColor(renderer_, 20, 20, 40, 240);
+        SDL_Rect panel = {panel_x, panel_y, panel_w, panel_h};
+        SDL_RenderFillRect(renderer_, &panel);
+        SDL_SetRenderDrawColor(renderer_, 180, 180, 220, 200);
+        SDL_RenderDrawRect(renderer_, &panel);
+
+        SDL_Color title_color = {255, 220, 230, 255};
+        SDL_Surface* title_surf = TTF_RenderUTF8_Blended(font_, title.c_str(), title_color);
+        if (title_surf) {
+            SDL_Texture* title_tex = SDL_CreateTextureFromSurface(renderer_, title_surf);
+            SDL_Rect title_dst = {panel_x + (panel_w - title_surf->w) / 2,
+                                  panel_y + sy(18), title_surf->w, title_surf->h};
+            SDL_RenderCopy(renderer_, title_tex, nullptr, &title_dst);
+            SDL_DestroyTexture(title_tex);
+            SDL_FreeSurface(title_surf);
+        }
+
+        int mx = 0;
+        int my = 0;
+        SDL_GetMouseState(&mx, &my);
+        int hovered = -1;
+
+        for (int i = 0; i < count; ++i) {
+            const int row_y = row_y_start + i * (row_h + row_spacing);
+            SDL_Rect row = {row_x, row_y, row_w, row_h};
+            const bool hover = mx >= row.x && mx < row.x + row.w && my >= row.y && my < row.y + row.h;
+            if (hover) {
+                hovered = i;
+            }
+
+            SDL_SetRenderDrawColor(renderer_, hover ? 90 : 40, hover ? 35 : 25, hover ? 70 : 45, 230);
+            SDL_RenderFillRect(renderer_, &row);
+
+            std::string line = "Slot " + std::to_string(i + 1) + ": ";
+            if (slots[static_cast<std::size_t>(i)].exists) {
+                line += slots[static_cast<std::size_t>(i)].summary;
+                if (!slots[static_cast<std::size_t>(i)].timestamp.empty()) {
+                    line += " — " + slots[static_cast<std::size_t>(i)].timestamp;
+                }
+            } else {
+                line += "Empty";
+            }
+
+            SDL_Color text_color = slots[static_cast<std::size_t>(i)].corrupted
+                                       ? SDL_Color{255, 120, 140, 255}
+                                       : SDL_Color{240, 240, 250, 255};
+            SDL_Surface* line_surf =
+                TTF_RenderUTF8_Blended_Wrapped(font_small_, line.c_str(), text_color,
+                                               static_cast<Uint32>(row_w - sx(20)));
+            if (line_surf) {
+                SDL_Texture* line_tex = SDL_CreateTextureFromSurface(renderer_, line_surf);
+                SDL_Rect line_dst = {row_x + sx(10), row_y + (row_h - line_surf->h) / 2,
+                                     line_surf->w, line_surf->h};
+                SDL_RenderCopy(renderer_, line_tex, nullptr, &line_dst);
+                SDL_DestroyTexture(line_tex);
+                SDL_FreeSurface(line_surf);
+            }
+        }
+
+        SDL_RenderPresent(renderer_);
+
+        SDL_Event event;
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT) {
+                running_ = false;
+                return -1;
+            }
+            if (event.type == SDL_KEYDOWN) {
+                if (event.key.keysym.sym == SDLK_ESCAPE) {
+                    return -1;
+                }
+                if (event.key.keysym.sym >= SDLK_1 && event.key.keysym.sym < SDLK_1 + count) {
+                    const int slot = event.key.keysym.sym - SDLK_1;
+                    if (!saving && !slots[static_cast<std::size_t>(slot)].exists) {
+                        continue;
+                    }
+                    play_ui_sound("select.ogg");
+                    return slot;
+                }
+            }
+            if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
+                if (hovered >= 0) {
+                    if (!saving && !slots[static_cast<std::size_t>(hovered)].exists) {
+                        continue;
+                    }
+                    play_ui_sound("select.ogg");
+                    return hovered;
+                }
+            }
+        }
+        SDL_Delay(16);
+    }
+    return -1;
 }
 
 } // namespace novel::platform

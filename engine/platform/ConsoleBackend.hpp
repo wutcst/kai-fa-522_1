@@ -1,5 +1,6 @@
 #pragma once
 
+#include "engine/core/SaveManager.hpp"
 #include "engine/platform/IBackend.hpp"
 
 namespace novel::platform {
@@ -26,8 +27,13 @@ public:
     void glitch(const std::string& type, int duration_ms = 300) override;
     void set_window_title(const std::string& title) override;
     void reset_window_title() override;
+    void fake_crash(const std::string& message) override;
+    int show_slot_menu(bool saving, const std::vector<core::SaveSlotInfo>& slots) override;
+    std::string current_background() const override;
+    std::vector<core::GameSaveState::SpriteState> current_sprites() const override;
+    void clear_sprites() override;
 
-    MenuAction show_main_menu() override;
+    MenuAction show_main_menu(bool has_save, int playthrough_count, int launch_count) override;
     void show_settings(GameSettings& settings) override;
     PauseAction show_pause_menu() override;
     void apply_settings(const GameSettings& settings) override;

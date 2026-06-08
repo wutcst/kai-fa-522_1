@@ -246,6 +246,12 @@ StmtPtr Parser::parse_statement() {
         return std::make_unique<GlitchStmt>(type, duration_ms);
     }
 
+    if (match_keyword("fake")) {
+        expect_keyword("crash");
+        const std::string message = advance().text;
+        return std::make_unique<FakeCrashStmt>(message);
+    }
+
     if (match_keyword("window")) {
         expect_keyword("title");
         if (match_keyword("reset")) {

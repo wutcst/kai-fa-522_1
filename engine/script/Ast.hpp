@@ -98,7 +98,7 @@ struct Stmt {
     enum class Kind {
         Say, Assign, Jump, Call, Return, Scene, Go,
         Bg, Show, Hide, PlayMusic, StopMusic, StopSound, PlaySound,
-        PlayAmbient, StopAmbient, Glitch, WindowTitle,
+        PlayAmbient, StopAmbient, Glitch, WindowTitle, FakeCrash,
         Dialogue, If, Menu,
     };
 
@@ -223,6 +223,12 @@ struct WindowTitleStmt : Stmt {
     bool reset = false;
     explicit WindowTitleStmt(std::string title, bool reset = false)
         : Stmt(Kind::WindowTitle), title(std::move(title)), reset(reset) {}
+};
+
+struct FakeCrashStmt : Stmt {
+    std::string message;
+    explicit FakeCrashStmt(std::string message)
+        : Stmt(Kind::FakeCrash), message(std::move(message)) {}
 };
 
 struct DialogueStmt : Stmt {

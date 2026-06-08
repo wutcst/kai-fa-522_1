@@ -30,6 +30,7 @@ using MusicPtr   = std::unique_ptr<Mix_Music,   MusicDeleter>;
 
 struct Sprite {
     SDL_Texture* texture = nullptr;
+    std::string image_path;
     std::string position;
     int w = 0;
     int h = 0;
@@ -62,8 +63,13 @@ public:
     void glitch(const std::string& type, int duration_ms = 300) override;
     void set_window_title(const std::string& title) override;
     void reset_window_title() override;
+    void fake_crash(const std::string& message) override;
+    int show_slot_menu(bool saving, const std::vector<core::SaveSlotInfo>& slots) override;
+    std::string current_background() const override;
+    std::vector<core::GameSaveState::SpriteState> current_sprites() const override;
+    void clear_sprites() override;
 
-    MenuAction show_main_menu() override;
+    MenuAction show_main_menu(bool has_save, int playthrough_count, int launch_count) override;
     void show_settings(GameSettings& settings) override;
     PauseAction show_pause_menu() override;
     void apply_settings(const GameSettings& settings) override;
@@ -147,6 +153,7 @@ private:
 
     // ── RAII-managed caches ──────────────────────────────────────────────
     SDL_Texture* background_ = nullptr;
+    std::string background_path_;
     std::unordered_map<std::string, Sprite> sprites_;
     std::unordered_map<std::string, sdl_raii::TexturePtr> texture_cache_;
 

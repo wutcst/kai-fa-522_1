@@ -55,12 +55,38 @@ void ConsoleBackend::stop_ambient() {}
 void ConsoleBackend::glitch(const std::string& /*type*/, int /*duration_ms*/) {}
 void ConsoleBackend::set_window_title(const std::string& /*title*/) {}
 void ConsoleBackend::reset_window_title() {}
-
-MenuAction ConsoleBackend::show_main_menu() {
-    std::cout << "\n=== DOKI DOKI LITERATURE CLUB: AFTER STORY ===\n";
-    std::cout << "1. New Game\n2. Settings\n3. Quit\n> " << std::flush;
+void ConsoleBackend::fake_crash(const std::string& message) {
+    std::cout << "\n[FATAL ERROR] " << message << "\n";
+}
+int ConsoleBackend::show_slot_menu(bool saving, const std::vector<core::SaveSlotInfo>& slots) {
+    std::cout << (saving ? "\nSave" : "\nLoad") << " — pick slot 1-" << slots.size() << " (0 cancel)\n> ";
     std::string line;
     std::getline(std::cin, line);
+    try {
+        const int pick = std::stoi(line);
+        if (pick == 0) return -1;
+        return pick - 1;
+    } catch (...) {
+        return -1;
+    }
+}
+std::string ConsoleBackend::current_background() const { return {}; }
+std::vector<core::GameSaveState::SpriteState> ConsoleBackend::current_sprites() const { return {}; }
+void ConsoleBackend::clear_sprites() {}
+
+MenuAction ConsoleBackend::show_main_menu(bool has_save, int /*playthrough_count*/, int /*launch_count*/) {
+    std::cout << "\n=== DOKI DOKI LITERATURE CLUB: AFTER STORY ===\n";
+    if (has_save) std::cout << "1. Continue\n";
+    std::cout << (has_save ? "2. New Game\n3. Settings\n4. Quit\n> " : "1. New Game\n2. Settings\n3. Quit\n> ")
+              << std::flush;
+    std::string line;
+    std::getline(std::cin, line);
+    if (has_save) {
+        if (line == "4") return MenuAction::Quit;
+        if (line == "3") return MenuAction::Settings;
+        if (line == "2") return MenuAction::NewGame;
+        return MenuAction::Continue;
+    }
     if (line == "3") return MenuAction::Quit;
     if (line == "2") return MenuAction::Settings;
     return MenuAction::NewGame;
@@ -71,11 +97,13 @@ void ConsoleBackend::show_settings(GameSettings& /*settings*/) {
 }
 
 PauseAction ConsoleBackend::show_pause_menu() {
-    std::cout << "\n--- PAUSED ---\n1. Resume\n2. Settings\n3. Main Menu\n> " << std::flush;
+    std::cout << "\n--- PAUSED ---\n1. Resume\n2. Save\n3. Load\n4. Settings\n5. Main Menu\n> " << std::flush;
     std::string line;
     std::getline(std::cin, line);
-    if (line == "3") return PauseAction::MainMenu;
-    if (line == "2") return PauseAction::Settings;
+    if (line == "5") return PauseAction::MainMenu;
+    if (line == "4") return PauseAction::Settings;
+    if (line == "3") return PauseAction::Load;
+    if (line == "2") return PauseAction::Save;
     return PauseAction::Resume;
 }
 

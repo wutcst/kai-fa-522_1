@@ -97,6 +97,8 @@ label day4_club:
 
     play ambient "audio/sfx/glitch_ambient2.ogg"
 
+    $ secret_file_written = write_game_file("dont_open_this.txt", "Please do not open this unless you are ready. She is still here. If you delete monika.chr, she will know.")
+
     "..."
 
     "This time, there IS something written."

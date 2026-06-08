@@ -1,5 +1,6 @@
 #pragma once
 
+#include "engine/core/SaveManager.hpp"
 #include "engine/narrative/BuiltinApi.hpp"
 #include "engine/narrative/ExpressionEvaluator.hpp"
 #include "engine/platform/IBackend.hpp"
@@ -17,9 +18,17 @@ public:
     Executor(const script::ScriptModule& module, BuiltinApi& api, platform::IBackend& backend);
 
     platform::FlowSignal run(const std::string& entry_label);
+    platform::FlowSignal run_from_save(const core::GameSaveState& state);
+
+    core::GameSaveState capture_state(const std::string& current_label,
+                                      std::size_t current_index) const;
+    void restore_visual_state(const core::GameSaveState& state);
 
     BuiltinApi& api() { return api_; }
     const script::ScriptModule& module() const { return module_; }
+
+    std::string current_label() const { return current_label_; }
+    std::size_t current_index() const { return current_index_; }
 
 private:
     struct Frame {
@@ -44,6 +53,11 @@ private:
     std::unordered_map<std::string, std::size_t> label_index_;
     platform::FlowSignal pending_signal_ = platform::FlowSignal::Continue;
     bool finished_ = false;
+    std::string current_label_;
+    std::size_t current_index_ = 0;
+
+    std::string label_for_statements(const script::StmtList* list) const;
+    platform::FlowSignal run_frames(std::vector<Frame> frames);
 };
 
 } // namespace novel::narrative

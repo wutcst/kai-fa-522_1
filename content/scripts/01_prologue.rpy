@@ -14,6 +14,23 @@ label start:
     bg "images/bg/bedroom.png"
     play music "audio/bgm/10.ogg"
 
+    if get_playthrough() >= 2:
+        window title "You came back"
+        "Something about this morning feels... rehearsed."
+        "Like I've lived this exact sunrise before."
+        window title reset
+
+    if get_launch_count() >= 3 and get_playthrough() >= 1:
+        "Before I even sit up, a whisper of déjà vu curls at the edge of my mind."
+        "As if someone is glad I returned."
+
+    if get_hour() >= 0 and get_hour() < 4:
+        "It's far too late — or far too early — to be waking up like this."
+        "The room is quiet in a way that feels almost watchful."
+
+    if not character_exists("monika"):
+        $ monika_chr_deleted = true
+
     "..."
 
     "I open my eyes."

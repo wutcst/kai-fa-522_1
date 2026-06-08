@@ -49,3 +49,26 @@ default sayori_overslept = false
 
 default glitch_count = 0
 default reality_cracks = 0
+
+default playthrough = 0
+default launch_count = 0
+default save_generation = 0
+default just_loaded = false
+default monika_chr_deleted = false
+default ending_reached = false
+default ending_type = "normal"
+default meta_file_written = false
+default secret_file_written = false
+
+# --- Meta hooks ---
+
+label save_loaded_hook:
+    if just_loaded:
+        if day >= 3 or glitch_count >= 2:
+            window title "You came back"
+            "For a moment, the world stutters — like a tape rewinding."
+            if glitch_count >= 2:
+                "A thought that isn't mine flickers behind my eyes:"
+                "'So you wanted to go back. I understand.'"
+            window title reset
+    return

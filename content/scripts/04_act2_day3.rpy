@@ -229,6 +229,8 @@ label day3_club:
     window title reset
     stop ambient
 
+    $ meta_file_written = write_game_file("CAN YOU HEAR ME.txt", "Can you hear me? There is a voice inside all of us. If you can hear it, do not look away.")
+
     "..."
 
     "My hands won't stop shaking."
@@ -244,6 +246,10 @@ label day3_club:
 label day3_evening:
     bg "images/bg/bedroom.png"
     stop music
+
+    if not character_exists("monika"):
+        $ monika_chr_deleted = true
+        glitch noise 200
 
     "Night falls."
 

@@ -3,6 +3,8 @@ add_library(novel_engine
     adventure/Room.cpp
     adventure/World.cpp
     core/Context.cpp
+    core/PersistentStore.cpp
+    core/SaveManager.cpp
     core/ScriptLoader.cpp
     core/Value.cpp
     Engine.cpp

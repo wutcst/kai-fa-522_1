@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <string>
+#include <vector>
 
 namespace novel::platform {
 
@@ -78,7 +79,7 @@ void SdlBackend::render_slider(int x, int y, int w, int value, bool active) {
 
 // ─── Main Menu ───────────────────────────────────────────────────────────────
 
-MenuAction SdlBackend::show_main_menu() {
+MenuAction SdlBackend::show_main_menu(bool has_save, int playthrough_count, int launch_count) {
     SDL_Texture* bg_tex = load_texture("gui/menu_bg.png");
     SDL_Texture* overlay_tex = load_texture("gui/overlay/main_menu.png");
     SDL_Texture* logo_tex = load_texture("gui/logo.png");
@@ -114,10 +115,22 @@ MenuAction SdlBackend::show_main_menu() {
         SDL_RenderCopy(renderer_, tex, nullptr, &dst);
     };
 
-    Button buttons[3];
-    buttons[0].label = "New Game";
-    buttons[1].label = "Settings";
-    buttons[2].label = "Quit";
+    const int button_count = has_save ? 4 : 3;
+    std::vector<Button> buttons(static_cast<std::size_t>(button_count));
+    int idx = 0;
+    if (has_save) {
+        buttons[idx++].label = "Continue";
+    }
+    buttons[idx++].label = playthrough_count >= 2 ? "Start Over" : "New Game";
+    buttons[idx++].label = "Settings";
+    buttons[idx].label = "Quit";
+
+    if (playthrough_count >= 2) {
+        set_window_title("Are you still there?");
+    } else if (playthrough_count >= 1) {
+        set_window_title("Doki Doki Literature Club: After Story");
+    }
+
     bool clicked_last_frame = false;
 
     while (running_) {
@@ -125,11 +138,12 @@ MenuAction SdlBackend::show_main_menu() {
         const int btn_h       = sy(44);
         const int btn_spacing = sy(12);
         const int btn_x       = sx(60);
-        const int btn_start_y = height_ / 2 + sy(40);
+        const int btn_start_y = height_ / 2 + sy(20);
 
-        buttons[0].rect = {btn_x, btn_start_y, btn_w, btn_h};
-        buttons[1].rect = {btn_x, btn_start_y + btn_h + btn_spacing, btn_w, btn_h};
-        buttons[2].rect = {btn_x, btn_start_y + (btn_h + btn_spacing) * 2, btn_w, btn_h};
+        for (int i = 0; i < button_count; ++i) {
+            buttons[static_cast<std::size_t>(i)].rect = {
+                btn_x, btn_start_y + i * (btn_h + btn_spacing), btn_w, btn_h};
+        }
 
         SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 255);
         SDL_RenderClear(renderer_);
@@ -142,8 +156,19 @@ MenuAction SdlBackend::show_main_menu() {
 
         if (overlay_tex) SDL_RenderCopy(renderer_, overlay_tex, nullptr, nullptr);
 
+        int mx = 0;
+        int my = 0;
+        SDL_GetMouseState(&mx, &my);
         for (int i = 0; i < 2; ++i) {
-            draw_char(front_chars[i], char_front[i].xcenter, char_front[i].ycenter, char_front[i].zoom);
+            float xc = char_front[i].xcenter;
+            float yc = char_front[i].ycenter;
+            if (playthrough_count >= 2 && i == 1) {
+                const float dx = (static_cast<float>(mx) / static_cast<float>(width_) - xc) * 0.03f;
+                const float dy = (static_cast<float>(my) / static_cast<float>(height_) - yc) * 0.02f;
+                xc += dx;
+                yc += dy;
+            }
+            draw_char(front_chars[i], xc, yc, char_front[i].zoom);
         }
 
         if (logo_tex) {
@@ -154,6 +179,19 @@ MenuAction SdlBackend::show_main_menu() {
             int logo_draw_h = static_cast<int>(lh * scale);
             SDL_Rect logo_dst = {sx(40), sy(24), logo_draw_w, logo_draw_h};
             SDL_RenderCopy(renderer_, logo_tex, nullptr, &logo_dst);
+        }
+
+        if (launch_count >= 3 && font_small_) {
+            SDL_Color hint_color = {255, 180, 200, 180};
+            const char* hint = playthrough_count >= 1 ? "She remembers you." : "Something feels familiar.";
+            SDL_Surface* hint_surf = TTF_RenderUTF8_Blended(font_small_, hint, hint_color);
+            if (hint_surf) {
+                SDL_Texture* hint_tex = SDL_CreateTextureFromSurface(renderer_, hint_surf);
+                SDL_Rect hint_dst = {btn_x, btn_start_y - sy(28), hint_surf->w, hint_surf->h};
+                SDL_RenderCopy(renderer_, hint_tex, nullptr, &hint_dst);
+                SDL_DestroyTexture(hint_tex);
+                SDL_FreeSurface(hint_surf);
+            }
         }
 
         for (auto& btn : buttons) {
@@ -170,14 +208,13 @@ MenuAction SdlBackend::show_main_menu() {
             }
             if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
                 if (!clicked_last_frame) {
-                    for (int i = 0; i < 3; ++i) {
-                        if (buttons[i].hovered) {
+                    for (int i = 0; i < button_count; ++i) {
+                        if (buttons[static_cast<std::size_t>(i)].hovered) {
                             play_ui_sound("select.ogg");
-                            switch (i) {
-                            case 0: return MenuAction::NewGame;
-                            case 1: return MenuAction::Settings;
-                            case 2: return MenuAction::Quit;
-                            }
+                            if (has_save && i == 0) return MenuAction::Continue;
+                            if ((has_save && i == 1) || (!has_save && i == 0)) return MenuAction::NewGame;
+                            if ((has_save && i == 2) || (!has_save && i == 1)) return MenuAction::Settings;
+                            return MenuAction::Quit;
                         }
                     }
                 }
@@ -188,7 +225,7 @@ MenuAction SdlBackend::show_main_menu() {
             }
             if (event.type == SDL_KEYDOWN) {
                 if (event.key.keysym.sym == SDLK_RETURN || event.key.keysym.sym == SDLK_SPACE) {
-                    return MenuAction::NewGame;
+                    return has_save ? MenuAction::Continue : MenuAction::NewGame;
                 }
                 if (event.key.keysym.sym == SDLK_ESCAPE) {
                     return MenuAction::Quit;
@@ -406,14 +443,16 @@ void SdlBackend::show_settings(GameSettings& settings) {
 // ─── Pause Menu ──────────────────────────────────────────────────────────────
 
 PauseAction SdlBackend::show_pause_menu() {
-    Button buttons[3];
+    Button buttons[5];
     buttons[0].label = "Resume";
-    buttons[1].label = "Settings";
-    buttons[2].label = "Main Menu";
+    buttons[1].label = "Save";
+    buttons[2].label = "Load";
+    buttons[3].label = "Settings";
+    buttons[4].label = "Main Menu";
 
     while (running_) {
         const int panel_w    = sx(300);
-        const int panel_h    = sy(260);
+        const int panel_h    = sy(380);
         const int panel_x    = (width_ - panel_w) / 2;
         const int panel_y    = (height_ - panel_h) / 2;
         const int btn_w      = sx(200);
@@ -422,9 +461,9 @@ PauseAction SdlBackend::show_pause_menu() {
         const int btn_x      = panel_x + (panel_w - btn_w) / 2;
         const int btn_y_start = panel_y + sy(70);
 
-        buttons[0].rect = {btn_x, btn_y_start, btn_w, btn_h};
-        buttons[1].rect = {btn_x, btn_y_start + btn_h + btn_spacing, btn_w, btn_h};
-        buttons[2].rect = {btn_x, btn_y_start + (btn_h + btn_spacing) * 2, btn_w, btn_h};
+        for (int i = 0; i < 5; ++i) {
+            buttons[i].rect = {btn_x, btn_y_start + i * (btn_h + btn_spacing), btn_w, btn_h};
+        }
 
         render_frame();
 
@@ -466,13 +505,15 @@ PauseAction SdlBackend::show_pause_menu() {
                 return PauseAction::Resume;
             }
             if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
-                for (int i = 0; i < 3; ++i) {
+                for (int i = 0; i < 5; ++i) {
                     if (buttons[i].hovered) {
                         play_ui_sound("select.ogg");
                         switch (i) {
                         case 0: return PauseAction::Resume;
-                        case 1: return PauseAction::Settings;
-                        case 2: return PauseAction::MainMenu;
+                        case 1: return PauseAction::Save;
+                        case 2: return PauseAction::Load;
+                        case 3: return PauseAction::Settings;
+                        case 4: return PauseAction::MainMenu;
                         }
                     }
                 }

@@ -6,16 +6,21 @@ enum class FlowSignal {
     Continue,
     Quit,
     MainMenu,
+    SaveRequest,
+    LoadRequest,
 };
 
 enum class MenuAction {
     NewGame,
+    Continue,
     Settings,
     Quit,
 };
 
 enum class PauseAction {
     Resume,
+    Save,
+    Load,
     Settings,
     MainMenu,
     Quit,

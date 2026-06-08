@@ -1,4 +1,5 @@
 #include "engine/Engine.hpp"
+#include "engine/core/PersistentStore.hpp"
 #include "engine/platform/ConsoleBackend.hpp"
 #include "engine/platform/GameUI.hpp"
 #include "engine/platform/SdlBackend.hpp"
@@ -24,6 +25,11 @@ std::string content_file(const std::filesystem::path& root, const std::string& r
     return (root / relative).string();
 }
 
+int pick_continue_slot(novel::platform::IBackend& backend, novel::Engine& engine) {
+    const auto slots = engine.saves().list_slots();
+    return backend.show_slot_menu(false, slots);
+}
+
 } // namespace
 
 int main(int argc, char* argv[]) {
@@ -35,6 +41,7 @@ int main(int argc, char* argv[]) {
     }
 
     const auto content_root = find_content_root();
+    const auto game_root = std::filesystem::absolute(content_root).parent_path();
 
     std::unique_ptr<novel::platform::IBackend> backend;
     if (use_console) {
@@ -52,11 +59,18 @@ int main(int argc, char* argv[]) {
         backend->init();
     }
 
+    novel::core::PersistentStore persistent(game_root);
+    persistent.on_launch();
+
     novel::platform::GameSettings settings;
 
     try {
         while (true) {
-            auto action = backend->show_main_menu();
+            novel::Engine engine(*backend, game_root, content_root, persistent);
+            engine.load_script_directory(content_file(content_root, "scripts"));
+
+            const auto action = backend->show_main_menu(
+                engine.has_save(), persistent.playthrough_count(), persistent.launch_count());
 
             if (action == novel::platform::MenuAction::Quit) {
                 break;
@@ -68,10 +82,18 @@ int main(int argc, char* argv[]) {
                 continue;
             }
 
-            novel::Engine engine(*backend);
-            engine.load_script_directory(content_file(content_root, "scripts"));
+            novel::platform::FlowSignal signal = novel::platform::FlowSignal::Continue;
 
-            auto signal = engine.run("start");
+            if (action == novel::platform::MenuAction::Continue) {
+                const int slot = pick_continue_slot(*backend, engine);
+                if (slot < 0) {
+                    continue;
+                }
+                signal = engine.run_from_slot(slot);
+            } else {
+                engine.prepare_new_game();
+                signal = engine.run("start");
+            }
 
             if (signal == novel::platform::FlowSignal::Quit) {
                 break;
@@ -79,6 +101,8 @@ int main(int argc, char* argv[]) {
             if (signal == novel::platform::FlowSignal::MainMenu) {
                 backend->stop_music(0);
                 backend->stop_sound();
+                backend->stop_ambient();
+                backend->reset_window_title();
                 continue;
             }
             break;

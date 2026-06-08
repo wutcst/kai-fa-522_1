@@ -1,8 +1,10 @@
 #pragma once
 
+#include "engine/core/SaveManager.hpp"
 #include "engine/platform/GameUI.hpp"
 
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace novel::platform {
@@ -16,7 +18,7 @@ public:
     virtual void shutdown() = 0;
 
     /// Show main menu and return selected action. Blocks until user chooses.
-    virtual MenuAction show_main_menu() = 0;
+    virtual MenuAction show_main_menu(bool has_save, int playthrough_count, int launch_count) = 0;
 
     /// Show settings screen. Blocks until user closes it.
     virtual void show_settings(GameSettings& settings) = 0;
@@ -80,6 +82,16 @@ public:
 
     /// Restore the default window title.
     virtual void reset_window_title() = 0;
+
+    /// Show a fake crash / error screen, then recover.
+    virtual void fake_crash(const std::string& message) = 0;
+
+    /// Pick a save slot. Returns slot index, or -1 if cancelled.
+    virtual int show_slot_menu(bool saving, const std::vector<core::SaveSlotInfo>& slots) = 0;
+
+    virtual std::string current_background() const = 0;
+    virtual std::vector<core::GameSaveState::SpriteState> current_sprites() const = 0;
+    virtual void clear_sprites() = 0;
 };
 
 } // namespace novel::platform

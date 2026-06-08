@@ -286,4 +286,4 @@ label day6_ending:
 
     stop music
 
-    jump epilogue
+    jump ending_router
