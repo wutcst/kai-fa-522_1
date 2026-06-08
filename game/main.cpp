@@ -2,6 +2,7 @@
 #include "engine/core/PersistentStore.hpp"
 #include "engine/platform/ConsoleBackend.hpp"
 #include "engine/platform/GameUI.hpp"
+#include "engine/platform/Paths.hpp"
 #include "engine/platform/SdlBackend.hpp"
 
 #include <filesystem>
@@ -10,20 +11,6 @@
 #include <string>
 
 namespace {
-
-std::filesystem::path find_content_root() {
-    std::filesystem::path candidate = "content";
-    if (std::filesystem::exists(candidate)) return candidate;
-    candidate = "../content";
-    if (std::filesystem::exists(candidate)) return candidate;
-    candidate = "../../content";
-    if (std::filesystem::exists(candidate)) return candidate;
-    return "content";
-}
-
-std::string content_file(const std::filesystem::path& root, const std::string& relative) {
-    return (root / relative).string();
-}
 
 int pick_continue_slot(novel::platform::IBackend& backend, novel::Engine& engine) {
     const auto slots = engine.saves().list_slots();
@@ -40,8 +27,18 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    const auto content_root = find_content_root();
-    const auto game_root = std::filesystem::absolute(content_root).parent_path();
+    const auto exe_dir = novel::platform::exe_directory();
+    std::error_code ec;
+    std::filesystem::current_path(exe_dir, ec);
+
+    const std::filesystem::path game_root = ".";
+    const std::filesystem::path content_root = "content";
+
+    if (!std::filesystem::exists(content_root)) {
+        std::cerr << "Content directory not found: content/\n";
+        std::cerr << "Expected layout: <exe>/content/\n";
+        return 1;
+    }
 
     std::unique_ptr<novel::platform::IBackend> backend;
     if (use_console) {
@@ -50,7 +47,8 @@ int main(int argc, char* argv[]) {
         auto& res = novel::platform::kResolutions[novel::platform::kDefaultResolution];
         backend = std::make_unique<novel::platform::SdlBackend>(
             res.width, res.height,
-            "Doki Doki Literature Club: After Story", content_root.string());
+            "Doki Doki Literature Club: After Story",
+            "content");
     }
 
     if (!backend->init()) {
@@ -67,7 +65,7 @@ int main(int argc, char* argv[]) {
     try {
         while (true) {
             novel::Engine engine(*backend, game_root, content_root, persistent);
-            engine.load_script_directory(content_file(content_root, "scripts"));
+            engine.load_script_directory("content/scripts");
 
             const auto action = backend->show_main_menu(
                 engine.has_save(), persistent.playthrough_count(), persistent.launch_count());
