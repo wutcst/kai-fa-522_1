@@ -3,6 +3,8 @@
 
 #include <SDL_mixer.h>
 
+#include <algorithm>
+#include <filesystem>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -441,8 +443,8 @@ void SdlBackend::show_settings(GameSettings& settings) {
                     play_ui_sound("select.ogg");
                     core::Locale::instance().toggle_language();
                     settings.language = core::Locale::instance().language();
-                    const std::string locale_path =
-                        resolve_path("locale/" + core::Locale::instance().script_subdir() + ".json");
+                    const auto locale_path = std::filesystem::path(content_root_) /
+                        "locale" / (core::Locale::instance().script_subdir() + ".json");
                     core::Locale::instance().load_strings(locale_path);
                     reload_fonts();
                 }

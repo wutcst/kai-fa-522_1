@@ -1,5 +1,6 @@
 #include "engine/core/Locale.hpp"
 
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -73,12 +74,12 @@ const std::string& Locale::tr(const std::string& key) const {
     return key;
 }
 
-void Locale::load_strings(const std::string& path) {
+void Locale::load_strings(const std::filesystem::path& path) {
     strings_.clear();
 
     std::ifstream file(path);
     if (!file) {
-        std::cerr << "Locale: failed to open " << path << '\n';
+        std::cerr << "Locale: failed to open " << path.u8string() << '\n';
         return;
     }
 

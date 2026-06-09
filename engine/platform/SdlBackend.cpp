@@ -157,7 +157,7 @@ void SdlBackend::shutdown() {
 
 std::string SdlBackend::resolve_path(const std::string& relative) const {
     std::filesystem::path full = std::filesystem::path(content_root_) / relative;
-    return full.string();
+    return full.u8string();
 }
 
 SDL_Texture* SdlBackend::load_texture(const std::string& path) {

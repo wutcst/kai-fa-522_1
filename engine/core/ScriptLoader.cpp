@@ -10,15 +10,15 @@
 
 namespace novel::core {
 
-script::ScriptModule ScriptLoader::load_file(const std::string& path) {
+script::ScriptModule ScriptLoader::load_file(const std::filesystem::path& path) {
     std::ifstream input(path);
     if (!input) {
-        throw std::runtime_error("failed to open script: " + path);
+        throw std::runtime_error("failed to open script: " + path.u8string());
     }
 
     std::ostringstream buffer;
     buffer << input.rdbuf();
-    return load_source(buffer.str(), path);
+    return load_source(buffer.str(), path.u8string());
 }
 
 script::ScriptModule ScriptLoader::load_source(const std::string& source, const std::string& name) {

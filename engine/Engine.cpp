@@ -5,6 +5,7 @@
 #include "engine/narrative/ExpressionEvaluator.hpp"
 
 #include <SDL.h>
+#include <algorithm>
 #include <chrono>
 #include <ctime>
 #include <filesystem>
@@ -89,16 +90,16 @@ void Engine::prepare_new_game() {
     context_.set("monika_chr_deleted", core::Value::from_bool(false));
 }
 
-void Engine::load_script_file(const std::string& path) {
+void Engine::load_script_file(const std::filesystem::path& path) {
     apply_module(core::ScriptLoader::load_file(path));
 }
 
-void Engine::load_script_directory(const std::string& dir_path) {
+void Engine::load_script_directory(const std::filesystem::path& dir_path) {
     namespace fs = std::filesystem;
-    std::vector<std::string> files;
+    std::vector<fs::path> files;
     for (const auto& entry : fs::directory_iterator(dir_path)) {
         if (entry.is_regular_file() && entry.path().extension() == ".rpy") {
-            files.push_back(entry.path().string());
+            files.push_back(entry.path());
         }
     }
     std::sort(files.begin(), files.end());

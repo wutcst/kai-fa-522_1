@@ -30,8 +30,8 @@ public:
            std::filesystem::path content_root,
            core::PersistentStore& persistent);
 
-    void load_script_file(const std::string& path);
-    void load_script_directory(const std::string& dir_path);
+    void load_script_file(const std::filesystem::path& path);
+    void load_script_directory(const std::filesystem::path& dir_path);
     void load_script_source(const std::string& source, const std::string& name = "<script>");
     void bootstrap();
     void prepare_new_game();

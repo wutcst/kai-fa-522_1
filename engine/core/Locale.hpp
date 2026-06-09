@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <string>
 #include <unordered_map>
 
@@ -28,7 +29,7 @@ public:
     std::string script_subdir() const;
 
     /// Load string table from a JSON file (simplified key-value format).
-    void load_strings(const std::string& path);
+    void load_strings(const std::filesystem::path& path);
 
 private:
     Locale();

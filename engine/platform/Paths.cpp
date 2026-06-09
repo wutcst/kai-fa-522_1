@@ -45,7 +45,7 @@ std::filesystem::path content_directory() {
 }
 
 std::string path_to_string(const std::filesystem::path& path) {
-    return path.generic_string();
+    return path.u8string();
 }
 
 } // namespace novel::platform

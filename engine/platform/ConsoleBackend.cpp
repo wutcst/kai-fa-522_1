@@ -3,11 +3,21 @@
 
 #include <iostream>
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 namespace novel::platform {
 
 using core::tr;
 
-bool ConsoleBackend::init() { return true; }
+bool ConsoleBackend::init() {
+#ifdef _WIN32
+    SetConsoleOutputCP(CP_UTF8);
+    SetConsoleCP(CP_UTF8);
+#endif
+    return true;
+}
 void ConsoleBackend::shutdown() {}
 
 FlowSignal ConsoleBackend::say(const std::string& speaker, const std::string& text) {
