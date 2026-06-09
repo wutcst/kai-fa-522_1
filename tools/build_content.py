@@ -35,7 +35,7 @@ def find_project_root() -> Path:
 
 
 def run_tool(script: str, args: list, project_root: Path) -> int:
-    cmd = [sys.executable, str(project_root / "tools" / script)] + args
+    cmd = [sys.executable, str(project_root / "tools" / "atlas_packer" / script)] + args
     print(f"\n{'='*60}")
     print(f"Running: {' '.join(cmd)}")
     print(f"{'='*60}\n")

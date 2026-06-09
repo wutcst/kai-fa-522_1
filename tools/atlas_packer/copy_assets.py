@@ -70,7 +70,7 @@ def main():
     project_root = find_project_root()
     assets_dir = Path(args.assets_dir) if args.assets_dir else project_root / "assets"
     content_dir = Path(args.content_dir) if args.content_dir else project_root / "content"
-    manifest_file = Path(args.manifest) if args.manifest else project_root / "tools" / "asset_manifest.json"
+    manifest_file = Path(args.manifest) if args.manifest else project_root / "tools" / "atlas_packer" / "asset_manifest.json"
 
     print("=== Asset Copy Tool ===")
     print(f"  Project root: {project_root}")

@@ -188,7 +188,7 @@ def main():
     project_root = find_project_root()
     assets_dir = Path(args.assets_dir) if args.assets_dir else project_root / "assets" / "images"
     output_dir = Path(args.output_dir) if args.output_dir else project_root / "content" / "images" / "characters"
-    sprites_file = Path(args.sprites) if args.sprites else project_root / "tools" / "sprites.json"
+    sprites_file = Path(args.sprites) if args.sprites else project_root / "tools" / "atlas_packer" / "sprites.json"
 
     characters = [c.strip() for c in args.characters.split(",")]
 

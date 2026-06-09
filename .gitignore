@@ -3,11 +3,18 @@
 /build/
 /bin/
 /cmake-build-*/
+/bundle/
 
 # IDE
 /.idea/
 /.vscode/
 *.iml
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.cache/
 
 # OS
 .DS_Store
