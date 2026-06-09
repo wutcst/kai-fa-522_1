@@ -1,4 +1,11 @@
 cmake_minimum_required(VERSION 3.14)
+
+# Third-party submodules (freetype in SDL_ttf) declare cmake_minimum_required
+# below 3.5, which CMake 4.x rejects. Allow them to configure anyway.
+if(CMAKE_VERSION VERSION_GREATER_EQUAL "4.0")
+    set(CMAKE_POLICY_VERSION_MINIMUM 3.5 CACHE STRING "")
+endif()
+
 project(novel VERSION 1.0.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
