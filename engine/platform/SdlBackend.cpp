@@ -50,18 +50,14 @@ bool SdlBackend::reload_fonts() {
     int small_size = std::max(sy(20), 8);
     int title_size = std::max(sy(48), 16);
 
-    const std::string font_path = resolve_path("fonts/default.ttf");
+    const std::string font_path = resolve_path("gui/font/Aller_Rg.ttf");
     font_ = TTF_OpenFont(font_path.c_str(), base_size);
-    if (!font_)
-        font_ = TTF_OpenFont("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", base_size);
     if (!font_) {
         std::cerr << "TTF_OpenFont failed: " << TTF_GetError() << '\n';
         return false;
     }
 
     font_small_ = TTF_OpenFont(font_path.c_str(), small_size);
-    if (!font_small_)
-        font_small_ = TTF_OpenFont("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", small_size);
     if (!font_small_)
         font_small_ = font_;
 
