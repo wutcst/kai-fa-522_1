@@ -1,0 +1,65 @@
+{
+    "window_title": "Doki Doki Literature Club: After Story",
+    "window_title_returning": "Are you still there?",
+
+    "menu.continue": "Continue",
+    "menu.new_game": "New Game",
+    "menu.start_over": "Start Over",
+    "menu.settings": "Settings",
+    "menu.quit": "Quit",
+
+    "menu.hint_remember": "She remembers you.",
+    "menu.hint_familiar": "Something feels familiar.",
+
+    "pause.title": "Paused",
+    "pause.resume": "Resume",
+    "pause.save": "Save",
+    "pause.load": "Load",
+    "pause.settings": "Settings",
+    "pause.main_menu": "Main Menu",
+
+    "settings.title": "Settings",
+    "settings.back": "Back",
+    "settings.music_volume": "Music Volume",
+    "settings.sfx_volume": "SFX Volume",
+    "settings.text_speed": "Text Speed",
+    "settings.resolution": "Resolution",
+    "settings.fullscreen_on": "Fullscreen: ON",
+    "settings.fullscreen_off": "Fullscreen: OFF",
+    "settings.language": "Language",
+
+    "slot.save_game": "Save Game",
+    "slot.load_game": "Load Game",
+    "slot.slot_prefix": "Slot ",
+    "slot.empty": "Empty",
+    "slot.day_prefix": "Day ",
+    "slot.day_corrupted_prefix": "??? Day ",
+    "slot.day_corrupted_suffix": " ???",
+
+    "crash.header": "ddlc_afterstory: fatal error",
+    "crash.default_body": "Segmentation fault (core dumped)",
+    "crash.footer": "Press any key to continue...",
+
+    "world.description_prefix": "You are ",
+    "world.description_suffix": ".",
+
+    "console.title": "=== DOKI DOKI LITERATURE CLUB: AFTER STORY ===",
+    "console.paused": "--- PAUSED ---",
+    "console.settings_unavailable": "[Settings not available in console mode]",
+    "console.input_prompt": "Please enter a number between 1 and ",
+    "console.slot_save": "Save",
+    "console.slot_load": "Load",
+    "console.slot_pick": " — pick slot 1-",
+    "console.slot_cancel": " (0 cancel)",
+
+    "save.notice_title": "SAVE FILE NOTICE",
+    "save.notice_separator": "================",
+    "save.notice_corrupted_1": "This save was touched while the world was unstable.",
+    "save.notice_corrupted_2": "Loading it might not bring you back to where you think.",
+    "save.notice_day": "Day ",
+    "save.notice_glitch": "Glitch count: ",
+    "save.notice_monika_1": "I know you're trying to hold onto this moment.",
+    "save.notice_monika_2": "But some moments weren't meant to be frozen.",
+    "save.notice_monika_3": "Still... thank you for not giving up on us.",
+    "save.notice_sign": "— Monika"
+}

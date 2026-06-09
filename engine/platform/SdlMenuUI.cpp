@@ -1,4 +1,5 @@
 #include "engine/platform/SdlBackend.hpp"
+#include "engine/core/Locale.hpp"
 
 #include <SDL_mixer.h>
 
@@ -7,6 +8,8 @@
 #include <vector>
 
 namespace novel::platform {
+
+using core::tr;
 
 // ─── UI Helper Methods ───────────────────────────────────────────────────────
 
@@ -119,16 +122,16 @@ MenuAction SdlBackend::show_main_menu(bool has_save, int playthrough_count, int 
     std::vector<Button> buttons(static_cast<std::size_t>(button_count));
     int idx = 0;
     if (has_save) {
-        buttons[idx++].label = "Continue";
+        buttons[idx++].label = tr("menu.continue");
     }
-    buttons[idx++].label = playthrough_count >= 2 ? "Start Over" : "New Game";
-    buttons[idx++].label = "Settings";
-    buttons[idx].label = "Quit";
+    buttons[idx++].label = playthrough_count >= 2 ? tr("menu.start_over") : tr("menu.new_game");
+    buttons[idx++].label = tr("menu.settings");
+    buttons[idx].label = tr("menu.quit");
 
     if (playthrough_count >= 2) {
-        set_window_title("Are you still there?");
+        set_window_title(tr("window_title_returning"));
     } else if (playthrough_count >= 1) {
-        set_window_title("Doki Doki Literature Club: After Story");
+        set_window_title(tr("window_title"));
     }
 
     bool clicked_last_frame = false;
@@ -183,7 +186,8 @@ MenuAction SdlBackend::show_main_menu(bool has_save, int playthrough_count, int 
 
         if (launch_count >= 3 && font_small_) {
             SDL_Color hint_color = {255, 180, 200, 180};
-            const char* hint = playthrough_count >= 1 ? "She remembers you." : "Something feels familiar.";
+            const auto& hint_str = playthrough_count >= 1 ? tr("menu.hint_remember") : tr("menu.hint_familiar");
+            const char* hint = hint_str.c_str();
             SDL_Surface* hint_surf = TTF_RenderUTF8_Blended(font_small_, hint, hint_color);
             if (hint_surf) {
                 SDL_Texture* hint_tex = SDL_CreateTextureFromSurface(renderer_, hint_surf);
@@ -245,16 +249,18 @@ void SdlBackend::show_settings(GameSettings& settings) {
 
     int dragging = -1;
     Button back_btn;
-    back_btn.label = "Back";
+    back_btn.label = tr("settings.back");
     Button res_prev_btn;
     res_prev_btn.label = "<";
     Button res_next_btn;
     res_next_btn.label = ">";
+    Button lang_btn;
+    lang_btn.label = tr("settings.language") + ": " + core::Locale::instance().language_name();
 
     while (running_) {
         // Recompute layout every frame so it adapts to resolution changes
         const int panel_w  = sx(600);
-        const int panel_h  = sy(460);
+        const int panel_h  = sy(520);
         const int panel_x  = (width_ - panel_w) / 2;
         const int panel_y  = (height_ - panel_h) / 2;
         const int label_x  = panel_x + sx(40);
@@ -278,7 +284,7 @@ void SdlBackend::show_settings(GameSettings& settings) {
         SDL_RenderDrawRect(renderer_, &panel);
 
         SDL_Color title_col = {255, 255, 255, 255};
-        SDL_Surface* title_surf = TTF_RenderUTF8_Blended(font_title_, "Settings", title_col);
+        SDL_Surface* title_surf = TTF_RenderUTF8_Blended(font_title_, tr("settings.title").c_str(), title_col);
         if (title_surf) {
             SDL_Texture* title_tex = SDL_CreateTextureFromSurface(renderer_, title_surf);
             SDL_Rect title_dst = {panel_x + (panel_w - title_surf->w) / 2,
@@ -289,11 +295,11 @@ void SdlBackend::show_settings(GameSettings& settings) {
         }
 
         int base_y = panel_y + sy(90);
-        struct SliderRow { const char* label; int* value; };
+        struct SliderRow { std::string label; int* value; };
         SliderRow rows[] = {
-            {"Music Volume", &settings.music_volume},
-            {"SFX Volume",   &settings.sfx_volume},
-            {"Text Speed",   &settings.text_speed},
+            {tr("settings.music_volume"), &settings.music_volume},
+            {tr("settings.sfx_volume"),   &settings.sfx_volume},
+            {tr("settings.text_speed"),   &settings.text_speed},
         };
 
         int mx, my;
@@ -302,7 +308,7 @@ void SdlBackend::show_settings(GameSettings& settings) {
         for (int i = 0; i < 3; ++i) {
             int row_y = base_y + i * row_h;
             SDL_Color lbl_col = {220, 220, 220, 255};
-            SDL_Surface* lbl_surf = TTF_RenderUTF8_Blended(font_, rows[i].label, lbl_col);
+            SDL_Surface* lbl_surf = TTF_RenderUTF8_Blended(font_, rows[i].label.c_str(), lbl_col);
             if (lbl_surf) {
                 SDL_Texture* lbl_tex = SDL_CreateTextureFromSurface(renderer_, lbl_surf);
                 SDL_Rect lbl_dst = {label_x, row_y + sy(4), lbl_surf->w, lbl_surf->h};
@@ -338,7 +344,7 @@ void SdlBackend::show_settings(GameSettings& settings) {
         int res_y = base_y + 3 * row_h;
         {
             SDL_Color lbl_col = {220, 220, 220, 255};
-            SDL_Surface* lbl_surf = TTF_RenderUTF8_Blended(font_, "Resolution", lbl_col);
+            SDL_Surface* lbl_surf = TTF_RenderUTF8_Blended(font_, tr("settings.resolution").c_str(), lbl_col);
             if (lbl_surf) {
                 SDL_Texture* lbl_tex = SDL_CreateTextureFromSurface(renderer_, lbl_surf);
                 SDL_Rect lbl_dst = {label_x, res_y + sy(4), lbl_surf->w, lbl_surf->h};
@@ -373,7 +379,7 @@ void SdlBackend::show_settings(GameSettings& settings) {
         // ── Fullscreen toggle ────────────────────────────────────────────
         int fs_y = base_y + 4 * row_h;
         SDL_Color fs_col = {220, 220, 220, 255};
-        std::string fs_label = std::string("Fullscreen: ") + (settings.fullscreen ? "ON" : "OFF");
+        const auto& fs_label = settings.fullscreen ? tr("settings.fullscreen_on") : tr("settings.fullscreen_off");
         SDL_Surface* fs_surf = TTF_RenderUTF8_Blended(font_, fs_label.c_str(), fs_col);
         if (fs_surf) {
             SDL_Texture* fs_tex = SDL_CreateTextureFromSurface(renderer_, fs_surf);
@@ -382,6 +388,11 @@ void SdlBackend::show_settings(GameSettings& settings) {
             SDL_DestroyTexture(fs_tex);
             SDL_FreeSurface(fs_surf);
         }
+
+        int lang_y = base_y + 5 * row_h;
+        lang_btn.label = tr("settings.language") + ": " + core::Locale::instance().language_name();
+        lang_btn.rect = {label_x, lang_y + sy(2), sx(300), sy(36)};
+        render_button(lang_btn, font_);
 
         render_button(back_btn, font_);
         SDL_RenderPresent(renderer_);
@@ -425,6 +436,16 @@ void SdlBackend::show_settings(GameSettings& settings) {
                     settings.fullscreen = !settings.fullscreen;
                     apply_settings(settings);
                 }
+                // Language click
+                if (lang_btn.hovered) {
+                    play_ui_sound("select.ogg");
+                    core::Locale::instance().toggle_language();
+                    settings.language = core::Locale::instance().language();
+                    const std::string locale_path =
+                        resolve_path("locale/" + core::Locale::instance().script_subdir() + ".json");
+                    core::Locale::instance().load_strings(locale_path);
+                    reload_fonts();
+                }
                 // Back button
                 if (back_btn.hovered) {
                     play_ui_sound("select.ogg");
@@ -444,11 +465,11 @@ void SdlBackend::show_settings(GameSettings& settings) {
 
 PauseAction SdlBackend::show_pause_menu() {
     Button buttons[5];
-    buttons[0].label = "Resume";
-    buttons[1].label = "Save";
-    buttons[2].label = "Load";
-    buttons[3].label = "Settings";
-    buttons[4].label = "Main Menu";
+    buttons[0].label = tr("pause.resume");
+    buttons[1].label = tr("pause.save");
+    buttons[2].label = tr("pause.load");
+    buttons[3].label = tr("pause.settings");
+    buttons[4].label = tr("pause.main_menu");
 
     while (running_) {
         const int panel_w    = sx(300);
@@ -479,7 +500,7 @@ PauseAction SdlBackend::show_pause_menu() {
         SDL_RenderDrawRect(renderer_, &panel);
 
         SDL_Color title_col = {255, 255, 255, 255};
-        SDL_Surface* title_surf = TTF_RenderUTF8_Blended(font_, "Paused", title_col);
+        SDL_Surface* title_surf = TTF_RenderUTF8_Blended(font_, tr("pause.title").c_str(), title_col);
         if (title_surf) {
             SDL_Texture* title_tex = SDL_CreateTextureFromSurface(renderer_, title_surf);
             SDL_Rect title_dst = {panel_x + (panel_w - title_surf->w) / 2,

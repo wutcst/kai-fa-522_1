@@ -1,0 +1,65 @@
+{
+    "window_title": "Doki Doki 文学部：After Story",
+    "window_title_returning": "你还在吗？",
+
+    "menu.continue": "继续游戏",
+    "menu.new_game": "新的游戏",
+    "menu.start_over": "重新开始",
+    "menu.settings": "设置",
+    "menu.quit": "退出",
+
+    "menu.hint_remember": "她记得你。",
+    "menu.hint_familiar": "似曾相识的感觉……",
+
+    "pause.title": "暂停",
+    "pause.resume": "继续",
+    "pause.save": "存档",
+    "pause.load": "读档",
+    "pause.settings": "设置",
+    "pause.main_menu": "返回主菜单",
+
+    "settings.title": "设置",
+    "settings.back": "返回",
+    "settings.music_volume": "音乐音量",
+    "settings.sfx_volume": "音效音量",
+    "settings.text_speed": "文字速度",
+    "settings.resolution": "分辨率",
+    "settings.fullscreen_on": "全屏：开",
+    "settings.fullscreen_off": "全屏：关",
+    "settings.language": "语言",
+
+    "slot.save_game": "保存游戏",
+    "slot.load_game": "加载游戏",
+    "slot.slot_prefix": "存档位 ",
+    "slot.empty": "空",
+    "slot.day_prefix": "第 ",
+    "slot.day_corrupted_prefix": "??? 第 ",
+    "slot.day_corrupted_suffix": " 天 ???",
+
+    "crash.header": "ddlc_afterstory：致命错误",
+    "crash.default_body": "段错误（核心已转储）",
+    "crash.footer": "按任意键继续……",
+
+    "world.description_prefix": "你在",
+    "world.description_suffix": "。",
+
+    "console.title": "=== DOKI DOKI 文学部：AFTER STORY ===",
+    "console.paused": "--- 暂停 ---",
+    "console.settings_unavailable": "[控制台模式下设置不可用]",
+    "console.input_prompt": "请输入 1 到 ",
+    "console.slot_save": "保存",
+    "console.slot_load": "加载",
+    "console.slot_pick": " — 选择存档位 1-",
+    "console.slot_cancel": "（0 取消）",
+
+    "save.notice_title": "存档提示",
+    "save.notice_separator": "================",
+    "save.notice_corrupted_1": "这个存档在世界不稳定时被触碰过。",
+    "save.notice_corrupted_2": "读取它可能无法带你回到你以为的地方。",
+    "save.notice_day": "第 ",
+    "save.notice_glitch": "故障次数：",
+    "save.notice_monika_1": "我知道你在努力留住这一刻。",
+    "save.notice_monika_2": "但有些时刻注定不该被冻结。",
+    "save.notice_monika_3": "不过……谢谢你没有放弃我们。",
+    "save.notice_sign": "—— 莫妮卡"
+}

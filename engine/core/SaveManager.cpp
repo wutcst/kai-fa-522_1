@@ -1,4 +1,5 @@
 #include "engine/core/SaveManager.hpp"
+#include "engine/core/Locale.hpp"
 
 #include <chrono>
 #include <fstream>
@@ -168,18 +169,18 @@ void SaveManager::write_monika_meta(int slot, const GameSaveState& state) const 
         return;
     }
 
-    meta << "SAVE FILE NOTICE\n";
-    meta << "================\n\n";
+    meta << tr("save.notice_title") << "\n";
+    meta << tr("save.notice_separator") << "\n\n";
     if (state.corrupted) {
-        meta << "This save was touched while the world was unstable.\n";
-        meta << "Loading it might not bring you back to where you think.\n\n";
+        meta << tr("save.notice_corrupted_1") << "\n";
+        meta << tr("save.notice_corrupted_2") << "\n\n";
     }
-    meta << "Day " << state.day << " — " << state.label << '\n';
-    meta << "Glitch count: " << state.glitch_count << "\n\n";
-    meta << "I know you're trying to hold onto this moment.\n";
-    meta << "But some moments weren't meant to be frozen.\n";
-    meta << "Still... thank you for not giving up on us.\n\n";
-    meta << "— Monika\n";
+    meta << tr("save.notice_day") << state.day << " — " << state.label << '\n';
+    meta << tr("save.notice_glitch") << state.glitch_count << "\n\n";
+    meta << tr("save.notice_monika_1") << "\n";
+    meta << tr("save.notice_monika_2") << "\n";
+    meta << tr("save.notice_monika_3") << "\n\n";
+    meta << tr("save.notice_sign") << "\n";
 }
 
 std::optional<GameSaveState> SaveManager::load_slot(int slot) const {
@@ -260,9 +261,9 @@ std::vector<SaveSlotInfo> SaveManager::list_slots() const {
             info.corrupted = state->corrupted || state->day >= 3 || state->glitch_count >= 2;
             info.day = state->day;
             info.label = state->label;
-            info.summary = "Day " + std::to_string(state->day);
+            info.summary = tr("slot.day_prefix") + std::to_string(state->day);
             if (info.corrupted) {
-                info.summary = "??? Day " + std::to_string(state->day) + " ???";
+                info.summary = tr("slot.day_corrupted_prefix") + std::to_string(state->day) + tr("slot.day_corrupted_suffix");
             }
 
             std::ifstream in(slot_path(slot));

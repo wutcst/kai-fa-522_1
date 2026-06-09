@@ -1,4 +1,5 @@
 #include "engine/adventure/World.hpp"
+#include "engine/core/Locale.hpp"
 
 #include <sstream>
 #include <stdexcept>
@@ -49,7 +50,7 @@ std::string World::format_description(const std::string& room_id) const {
     if (!current) {
         return {};
     }
-    return "You are " + current->description() + ".";
+    return core::tr("world.description_prefix") + current->description() + core::tr("world.description_suffix");
 }
 
 } // namespace novel::adventure

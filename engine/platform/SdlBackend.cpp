@@ -1,4 +1,5 @@
 #include "engine/platform/SdlBackend.hpp"
+#include "engine/core/Locale.hpp"
 
 #include <SDL_mixer.h>
 
@@ -10,6 +11,8 @@
 #include <stdexcept>
 
 namespace novel::platform {
+
+using core::tr;
 
 namespace {
 
@@ -50,7 +53,11 @@ bool SdlBackend::reload_fonts() {
     int small_size = std::max(sy(20), 8);
     int title_size = std::max(sy(48), 16);
 
-    const std::string font_path = resolve_path("gui/font/Aller_Rg.ttf");
+    const bool use_cjk = core::Locale::instance().language() == core::Language::Chinese;
+    const std::string font_path = use_cjk
+        ? resolve_path("gui/font/\xe5\xbe\xae\xe8\xbd\xaf\xe9\x9b\x85\xe9\xbb\x91.ttf")
+        : resolve_path("gui/font/Aller_Rg.ttf");
+
     font_ = TTF_OpenFont(font_path.c_str(), base_size);
     if (!font_) {
         std::cerr << "TTF_OpenFont failed: " << TTF_GetError() << '\n';
@@ -61,7 +68,9 @@ bool SdlBackend::reload_fonts() {
     if (!font_small_)
         font_small_ = font_;
 
-    const std::string title_font_path = resolve_path("gui/font/RifficFree-Bold.ttf");
+    const std::string title_font_path = use_cjk
+        ? font_path
+        : resolve_path("gui/font/RifficFree-Bold.ttf");
     font_title_ = TTF_OpenFont(title_font_path.c_str(), title_size);
     if (!font_title_)
         font_title_ = font_;
@@ -864,9 +873,9 @@ void SdlBackend::fake_crash(const std::string& message) {
     SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 255);
     SDL_RenderClear(renderer_);
 
-    const std::string header = "ddlc_afterstory: fatal error";
-    const std::string body = message.empty() ? "Segmentation fault (core dumped)" : message;
-    const std::string footer = "Press any key to continue...";
+    const std::string header = tr("crash.header");
+    const std::string body = message.empty() ? tr("crash.default_body") : message;
+    const std::string footer = tr("crash.footer");
 
     SDL_Color header_color = {220, 60, 60, 255};
     SDL_Color body_color = {230, 230, 230, 255};
@@ -929,7 +938,7 @@ void SdlBackend::fake_crash(const std::string& message) {
 }
 
 int SdlBackend::show_slot_menu(bool saving, const std::vector<core::SaveSlotInfo>& slots) {
-    const std::string title = saving ? "Save Game" : "Load Game";
+    const std::string title = saving ? tr("slot.save_game") : tr("slot.load_game");
     const int count = static_cast<int>(slots.size());
 
     while (running_) {
@@ -983,14 +992,14 @@ int SdlBackend::show_slot_menu(bool saving, const std::vector<core::SaveSlotInfo
             SDL_SetRenderDrawColor(renderer_, hover ? 90 : 40, hover ? 35 : 25, hover ? 70 : 45, 230);
             SDL_RenderFillRect(renderer_, &row);
 
-            std::string line = "Slot " + std::to_string(i + 1) + ": ";
+            std::string line = tr("slot.slot_prefix") + std::to_string(i + 1) + ": ";
             if (slots[static_cast<std::size_t>(i)].exists) {
                 line += slots[static_cast<std::size_t>(i)].summary;
                 if (!slots[static_cast<std::size_t>(i)].timestamp.empty()) {
                     line += " — " + slots[static_cast<std::size_t>(i)].timestamp;
                 }
             } else {
-                line += "Empty";
+                line += tr("slot.empty");
             }
 
             SDL_Color text_color = slots[static_cast<std::size_t>(i)].corrupted

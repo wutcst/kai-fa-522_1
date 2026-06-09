@@ -1,5 +1,7 @@
 #pragma once
 
+#include "engine/core/Locale.hpp"
+
 namespace novel::platform {
 
 enum class FlowSignal {
@@ -56,6 +58,7 @@ struct GameSettings {
     int text_speed = 50;                           // 0–100 (0 = instant)
     int resolution_index = kDefaultResolution;     // index into kResolutions[]
     bool fullscreen = false;
+    core::Language language = core::Language::English;
 };
 
 } // namespace novel::platform

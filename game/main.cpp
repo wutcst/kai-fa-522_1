@@ -1,4 +1,5 @@
 #include "engine/Engine.hpp"
+#include "engine/core/Locale.hpp"
 #include "engine/core/PersistentStore.hpp"
 #include "engine/platform/ConsoleBackend.hpp"
 #include "engine/platform/GameUI.hpp"
@@ -57,6 +58,10 @@ int main(int argc, char* argv[]) {
         backend->init();
     }
 
+    auto& locale = novel::core::Locale::instance();
+    locale.set_language(novel::core::Language::English);
+    locale.load_strings("content/locale/en.json");
+
     novel::core::PersistentStore persistent(game_root);
     persistent.on_launch();
 
@@ -65,7 +70,9 @@ int main(int argc, char* argv[]) {
     try {
         while (true) {
             novel::Engine engine(*backend, game_root, content_root, persistent);
-            engine.load_script_directory("content/scripts");
+            const std::string script_dir =
+                "content/scripts/" + novel::core::Locale::instance().script_subdir();
+            engine.load_script_directory(script_dir);
 
             const auto action = backend->show_main_menu(
                 engine.has_save(), persistent.playthrough_count(), persistent.launch_count());

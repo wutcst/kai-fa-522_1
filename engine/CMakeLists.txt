@@ -3,6 +3,7 @@ add_library(novel_engine
     adventure/Room.cpp
     adventure/World.cpp
     core/Context.cpp
+    core/Locale.cpp
     core/PersistentStore.cpp
     core/SaveManager.cpp
     core/ScriptLoader.cpp

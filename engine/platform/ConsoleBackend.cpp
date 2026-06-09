@@ -1,8 +1,11 @@
 #include "engine/platform/ConsoleBackend.hpp"
+#include "engine/core/Locale.hpp"
 
 #include <iostream>
 
 namespace novel::platform {
+
+using core::tr;
 
 bool ConsoleBackend::init() { return true; }
 void ConsoleBackend::shutdown() {}
@@ -36,7 +39,7 @@ ChoiceResult ConsoleBackend::choose(const std::vector<std::string>& options) {
         } catch (const std::invalid_argument&) {
         } catch (const std::out_of_range&) {
         }
-        std::cout << "Please enter a number between 1 and " << options.size() << ".\n";
+        std::cout << tr("console.input_prompt") << options.size() << ".\n";
     }
 }
 
@@ -59,7 +62,8 @@ void ConsoleBackend::fake_crash(const std::string& message) {
     std::cout << "\n[FATAL ERROR] " << message << "\n";
 }
 int ConsoleBackend::show_slot_menu(bool saving, const std::vector<core::SaveSlotInfo>& slots) {
-    std::cout << (saving ? "\nSave" : "\nLoad") << " — pick slot 1-" << slots.size() << " (0 cancel)\n> ";
+    std::cout << "\n" << (saving ? tr("console.slot_save") : tr("console.slot_load"))
+              << tr("console.slot_pick") << slots.size() << tr("console.slot_cancel") << "\n> ";
     std::string line;
     std::getline(std::cin, line);
     try {
@@ -75,10 +79,15 @@ std::vector<core::GameSaveState::SpriteState> ConsoleBackend::current_sprites() 
 void ConsoleBackend::clear_sprites() {}
 
 MenuAction ConsoleBackend::show_main_menu(bool has_save, int /*playthrough_count*/, int /*launch_count*/) {
-    std::cout << "\n=== DOKI DOKI LITERATURE CLUB: AFTER STORY ===\n";
-    if (has_save) std::cout << "1. Continue\n";
-    std::cout << (has_save ? "2. New Game\n3. Settings\n4. Quit\n> " : "1. New Game\n2. Settings\n3. Quit\n> ")
-              << std::flush;
+    std::cout << "\n" << tr("console.title") << "\n";
+    if (has_save) std::cout << "1. " << tr("menu.continue") << "\n";
+    if (has_save) {
+        std::cout << "2. " << tr("menu.new_game") << "\n3. " << tr("menu.settings")
+                  << "\n4. " << tr("menu.quit") << "\n> " << std::flush;
+    } else {
+        std::cout << "1. " << tr("menu.new_game") << "\n2. " << tr("menu.settings")
+                  << "\n3. " << tr("menu.quit") << "\n> " << std::flush;
+    }
     std::string line;
     std::getline(std::cin, line);
     if (has_save) {
@@ -93,11 +102,14 @@ MenuAction ConsoleBackend::show_main_menu(bool has_save, int /*playthrough_count
 }
 
 void ConsoleBackend::show_settings(GameSettings& /*settings*/) {
-    std::cout << "[Settings not available in console mode]\n";
+    std::cout << tr("console.settings_unavailable") << "\n";
 }
 
 PauseAction ConsoleBackend::show_pause_menu() {
-    std::cout << "\n--- PAUSED ---\n1. Resume\n2. Save\n3. Load\n4. Settings\n5. Main Menu\n> " << std::flush;
+    std::cout << "\n" << tr("console.paused") << "\n1. " << tr("pause.resume")
+              << "\n2. " << tr("pause.save") << "\n3. " << tr("pause.load")
+              << "\n4. " << tr("pause.settings") << "\n5. " << tr("pause.main_menu")
+              << "\n> " << std::flush;
     std::string line;
     std::getline(std::cin, line);
     if (line == "5") return PauseAction::MainMenu;
