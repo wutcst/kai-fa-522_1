@@ -2,6 +2,12 @@
 
 基于自研 **novel** 视觉小说引擎的 DDLC 同人续作。C++17 实现，SDL2 渲染，跨 Linux / Windows 双平台。
 
+![img](assets/docs/menu.png)
+
+![img](assets/docs/dialogue.png)
+
+![img](assets/docs/3.png)
+
 ## 快速开始
 
 ```bash
