@@ -1,0 +1,141 @@
+name: Build
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-linux:
+    name: Linux (${{ matrix.build_type }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: [Release, Debug]
+
+    steps:
+      - name: Checkout with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install SDL2 build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake ninja-build \
+            libx11-dev libxext-dev libxrandr-dev libxcursor-dev \
+            libxi-dev libxss-dev libxxf86vm-dev \
+            libwayland-dev libxkbcommon-dev wayland-protocols \
+            libasound2-dev libpulse-dev libjack-dev \
+            libdbus-1-dev libudev-dev \
+            libfreetype-dev libharfbuzz-dev \
+            libgl1-mesa-dev libglu1-mesa-dev libegl1-mesa-dev
+
+      - name: Cache CMake build
+        uses: actions/cache@v4
+        with:
+          path: build
+          key: linux-${{ matrix.build_type }}-${{ hashFiles('CMakeLists.txt', 'engine/CMakeLists.txt', 'game/CMakeLists.txt', '.gitmodules') }}
+          restore-keys: |
+            linux-${{ matrix.build_type }}-
+
+      - name: Configure
+        run: >
+          cmake -S . -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+
+      - name: Build
+        run: cmake --build build --parallel $(nproc)
+
+      - name: Verify executable
+        run: |
+          test -f build/bin/ddlc_afterstory
+          file build/bin/ddlc_afterstory
+          ls -lh build/bin/ddlc_afterstory
+
+      - name: Upload artifact
+        if: matrix.build_type == 'Release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ddlc-afterstory-linux
+          path: |
+            build/bin/ddlc_afterstory
+            content/
+          retention-days: 14
+
+  build-windows:
+    name: Windows (${{ matrix.build_type }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: [Release, Debug]
+
+    steps:
+      - name: Checkout with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Cache CMake build
+        uses: actions/cache@v4
+        with:
+          path: build
+          key: windows-${{ matrix.build_type }}-${{ hashFiles('CMakeLists.txt', 'engine/CMakeLists.txt', 'game/CMakeLists.txt', '.gitmodules') }}
+          restore-keys: |
+            windows-${{ matrix.build_type }}-
+
+      - name: Configure
+        run: >
+          cmake -S . -B build
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+
+      - name: Build
+        run: cmake --build build --config ${{ matrix.build_type }} --parallel $env:NUMBER_OF_PROCESSORS
+
+      - name: Verify executable
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem -Path build -Recurse -Filter "ddlc_afterstory.exe" | Select-Object -First 1
+          if (-not $exe) { Write-Error "Executable not found"; exit 1 }
+          Write-Host "Found: $($exe.FullName) ($([math]::Round($exe.Length / 1MB, 2)) MB)"
+
+      - name: Upload artifact
+        if: matrix.build_type == 'Release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ddlc-afterstory-windows
+          path: |
+            build/bin/Release/ddlc_afterstory.exe
+            content/
+          retention-days: 14
+
+  toolchain-check:
+    name: Toolchain Detection
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: pip install Pillow
+
+      - name: Run toolchain detection
+        run: python tools/compile/detection.py
+
+      - name: Run toolchain detection (JSON)
+        run: python tools/compile/detection.py --json
