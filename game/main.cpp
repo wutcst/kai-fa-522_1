@@ -107,6 +107,8 @@ int main(int argc, char* argv[]) {
                 backend->stop_music(0);
                 backend->stop_sound();
                 backend->stop_ambient();
+                backend->clear_sprites();
+                backend->show_background("");
                 backend->reset_window_title();
                 continue;
             }
