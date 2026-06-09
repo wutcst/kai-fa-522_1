@@ -1,80 +1,145 @@
-[![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/u1xW62gh)
-# 软件工程实训任务二：小组协同开发
+# Doki Doki Literature Club: After Story
 
-## 任务目的
-* 巩固强化软件编程规范
-* 提高面向对象软件建模与抽象能力
-* 培养小组协同开发能力
-* 掌握基于Maven的软件项目管理机制
-* 掌握基于Github的小组协同开发工具和平台
-* 了解DevOps软件开发流程
+基于自研 **novel** 视觉小说引擎的 DDLC 同人续作。C++17 实现，SDL2 渲染，跨 Linux / Windows 双平台。
 
-## 任务内容
-* 创建软件开发小组
-* 针对项目开发任务进行小组讨论，确定功能开发需求点 
-* 基于Github中的issue管理功能明确工作任务并为组员分配工作任务
-* 基于小组商定的分支模型进行软件功能开发，并按开发流程进行代码测试、提交、归并和同步
-* 代码提交到远程仓库后，应进行自动化代码格式规范检查和测试以确保功能符合需求设计
-* 完成前述各项任务后，可尝试进行代码自动化打包，自动生成可供执行的工程文件
+## 快速开始
 
-## 任务要求
-1. 创建软件开发小组
-    * 每个开发小组人数3-4人，推选一人作为组长，负责组织、协调和领导团队开发；
-    * 所有小组成员应按操作步骤在github开发平台上加入同一小组，共用同一代码仓库；
-    
-2. 开展小组讨论，确定功能扩充点
-    * 样例工程“world-of-zuul”具备最基本的程序功能，该项目具有极大的扩展空间，开发小组内可进行沟通讨论，确定系统结构优化需求或功能扩充需求，形成具有完整交互界面和功能逻辑的游戏项目；
-    * 软件开发小组也可不基于“world-of-zuul”的样例代码，自选择新的游戏项目内容进行开发，但要求必须具有完整交互界面和功能逻辑；
+```bash
+# 克隆（含 SDL2 子模块）
+git clone --recursive <repo-url>
+cd kai-fa-522_1
 
-> 可供参考的结构优化或功能扩充项包括但不限于以下内容：
->
-> 1. 扩展游戏，使得一个房间里可以存放任意数量的物件，每个物件可以有一个描述和一个重量值，玩家进入一个房间后，可以通过“look”命令查看当前房间的信息以及房间内的所有物品信息；
-> 2. 在游戏中实现一个“back”命令，玩家输入该命令后会把玩家带回上一个房间；
-> 3. 在游戏中实现一个更高级的“back”命令，重复使用它就可以逐层回退几个房间，直到把玩家带回到游戏的起点；
-> 4. 在游戏中增加具有传输功能的房间，每当玩家进入这个房间，就会被随机地传输到另一个房间；
-> 5. 在游戏中新建一个独立的Player类用来表示玩家，并实现下列功能需求：
->    * 一个玩家对象应该保存玩家的姓名等基本信息，也应该保存玩家当前所在的房间；
->    * 玩家可以随身携带任意数量的物件，但随身物品的总重量不能操过某个上限值；
->    * 在游戏中增加两个新的命令“take”和“drop”，使得玩家可以拾取房间内的指定物品或丢弃身上携带的某件或全部物品，当拾取新的物件时超过了玩家可携带的重量上限，系统应给出提示；
->    * 在游戏中增加一个新的命令“items”, 可以打印出当前房间内所有的物件及总重量，以及玩家随身携带的所有物件及总重量；
->    * 在某个或某些房间中随机增加一个magic cookie（魔法饼干）物件，并增加一个“eat cookie”命令，如果玩家找到并吃掉魔法饼干，就可以增长玩家的负重能力；
-> 6. 扩充游戏基本架构，使其支持网络多人游戏模式，具备玩家登陆等功能；
-> 7. 为单机或网络版游戏增加图形化用户界面，用过可以通过图形化界面执行游戏功能；
-> 8. 可以为游戏增加数据库功能，用于保存游戏状态和用户设置；
-> 9. ......
+# 检测工具链
+./ddlc.sh detect          # Linux
+# .\ddlc.ps1 detect       # Windows
 
-3. 基于Github中的issue管理功能明确工作任务并为组员分配工作任务
-    * 将工作任务拆分细化后，明确版本开发计划和里程碑时间节点；
-    
-    * 在github平台创建任务issue并为所有组员分配任务；
-    
-    * 每位组员可以分别承担不同的开发任务，也可以按照小组角色分别承担开发、测试、集成等工作任务；
-    
-    * 工作任务的划分是最终衡量小组成员工作量的重要依据；
-    
-4. 基于小组商定的分支模型进行软件功能开发，并按开发流程进行代码测试、提交、归并和同步
+# 编译
+./ddlc.sh build
 
-    * 小组成员按照小组商定的分支模型在各自的工作分支进行进行开发任务；
-    * 所有源代码应包含规范化标注和必要说明；
-    * 小组成员的个人工作分支也需提交同步到github平台，供教师检查每人的开发工作完成情况；
-    * 提交代码时应按照小组约定的规范格式填写代码提交说明，代码提交说明也将作为评分的重要依据；
+# 运行
+./ddlc.sh run
+```
 
-5. 代码提交到远程仓库后，应进行自动化代码格式规范检查和测试以确保功能符合需求设计；
+## 项目架构
 
-    * 可以利用github平台的actions功能在代码提交时自动触发代码格式检查，对于不符合规范的代码系统将给出提交失败提示；
-    * 可以利用github平台的actions功能在代码提交时自动触发测试用例检查，对于不能通过测试检查的代码系统将给出提交失败提示；
+```
+kai-fa-522_1/
+├── engine/                     # novel 视觉小说引擎
+│   ├── script/                 #   词法分析 · 语法解析 → AST
+│   ├── narrative/              #   脚本执行器 · 内建 API · 表达式求值
+│   ├── adventure/              #   房间导航 · 玩家状态
+│   ├── core/                   #   变量上下文 · 存档管理 · 国际化 · 脚本加载
+│   └── platform/               #   渲染后端 (SDL / Console) · 路径工具
+├── game/                       # 游戏入口 main.cpp
+├── content/                    # 运行时资源
+│   ├── scripts/{en,zh}/        #   .rpy 剧本 (中/英双语)
+│   ├── images/                 #   背景 · 角色精灵
+│   ├── audio/                  #   BGM · 音效
+│   ├── gui/                    #   UI 素材 · 字体
+│   └── locale/                 #   界面翻译 (en.json / zh.json)
+├── third_party/                # Git 子模块: SDL2 / SDL_image / SDL_ttf / SDL_mixer
+├── tools/                      # Python / Shell 工具链
+│   ├── compile/detection.py    #   工具链完善度检测
+│   ├── atlas_packer/           #   角色精灵合成 · 资源拷贝
+│   ├── clean/                  #   工作区清理 (py / bash / ps1)
+│   ├── bundle/package.py       #   一键打包流水线
+│   └── build_content.py        #   内容构建入口
+├── .github/workflows/          # CI/CD
+│   ├── build.yml               #   推送 / PR → 双平台编译
+│   └── release.yml             #   Tag → 自动发布
+├── ddlc.sh                     # Linux 命令行入口
+└── ddlc.ps1                    # Windows 命令行入口
+```
 
-6. 可尝试进行代码自动化打包，自动生成可供执行工程文件
+### 引擎模块关系
 
-    * 结合github平台的actions功能和maven编译脚本，在代码通过规范性检查和测试用例后，进行自动化打包，生成可供直接执行的jar文件用于系统发布
+```mermaid
+graph LR
+    subgraph game["game/"]
+        main["main.cpp"]
+    end
 
+    subgraph engine["engine/"]
+        E["Engine"]
+        SC["script/<br>Lexer · Parser"]
+        NR["narrative/<br>Executor · BuiltinApi"]
+        AD["adventure/<br>World · Room · Player"]
+        CR["core/<br>Context · SaveManager<br>Locale · ScriptLoader"]
+        PL["platform/<br>SdlBackend · ConsoleBackend"]
+    end
 
-## 任务输出
-1. 所有开发任务需在小组代码仓库中完成，所有开发工作成果需在仓库中提交，每个人的工作内容主要凭代码仓库中所体现的工作量进行评判；
-2. 修改README.md文件的内容，作为小组项目的介绍文档，可参照其他开源项目中对README.md文件的写法进行编写；
-3. 每组同学以word文档格式提交纸质的小组实训报告，并在项目根目录下创建一个名称为REPORT.docx/REPORT.pdf的文件作为电子版提交，报告内容应对项目实训过程中包含各工作内容的设计过程及完成情况的说明；
-4. 每小组制作一只5-10分钟的视频对作业成果进行说明展示，并公开发表在bilibili.com上，统一以【武理26软工实践】作为视频标题前缀
-5. 期末时以小组答辩形式进行公开答辩验收；
-6. 允许使用AI进行辅助开发和设计，但需在报告中明确详细说明所使用的AI模型及所辅助完成的开发工作等内容；
+    subgraph deps["third_party/"]
+        SDL["SDL2 + image/ttf/mixer"]
+    end
 
+    main --> E
+    E --> SC
+    E --> NR
+    E --> AD
+    E --> CR
+    NR --> CR
+    NR --> PL
+    PL --> SDL
+```
 
+## 构建要求
+
+| 依赖 | 最低版本 | 说明 |
+|------|---------|------|
+| CMake | 3.14 | 构建系统 |
+| C++ 编译器 | C++17 | GCC 8+ / Clang 7+ / MSVC 2019+ |
+| Python | 3.8 | 内容管线 & 工具脚本 |
+| Pillow | - | 精灵图合成（`pip install Pillow`） |
+| Git | - | 子模块管理 |
+
+SDL2 及其扩展库通过 Git 子模块以源码形式静态链接，无需系统安装。Linux 下需安装开发头文件：
+
+```bash
+# Ubuntu / Debian
+sudo apt-get install -y \
+    build-essential cmake ninja-build \
+    libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev \
+    libasound2-dev libpulse-dev libfreetype-dev libharfbuzz-dev \
+    libgl1-mesa-dev
+```
+
+Windows 下使用 Visual Studio 2019+ 即可，CMake 会自动配置 MSVC 编译选项。
+
+## 工具链
+
+通过根目录脚本统一调用（Linux `./ddlc.sh`，Windows `.\ddlc.ps1`）：
+
+| 命令 | 功能 |
+|------|------|
+| `detect` | 检测 CMake、编译器、Python、子模块、分支状态 |
+| `build-content` | 从原始素材合成精灵图、拷贝背景和音频 |
+| `build` | CMake 配置 + 编译 |
+| `run` | 编译并启动游戏 |
+| `bundle` | 完整打包流水线 → `bundle/ddlc-<hash>/` |
+| `clean` | 清理 build / bin / \_\_pycache\_\_ 等 |
+| `clean-all` | 深度清理（含 content/） |
+
+## CI/CD
+
+| 工作流 | 触发条件 | 内容 |
+|--------|---------|------|
+| **Build** | push / PR → master | Linux + Windows 双平台 Release/Debug 编译，工具链检测 |
+| **Release** | 推送 `v*` tag | 双平台构建 → 组装 bundle → 创建 GitHub Release |
+
+## 脚本系统
+
+游戏剧本使用参考 Ren'Py 的 `.rpy` 脚本语法，支持：
+
+- **对话** — `角色 "台词"` / 旁白
+- **分支选择** — `menu:` + `"选项":` 块
+- **精灵 / 背景 / 音频** — `show` / `scene` / `play music`
+- **变量与条件** — `$ var = expr` / `if` / `elif` / `else`
+- **房间导航** — `room` 定义 + `exit` 出口（文字冒险扩展）
+- **存档 / 读档** — 内置存档槽位系统
+- **故障艺术** — `glitch` 指令（撕裂、噪点、反色等特效）
+
+完整语法参见 [SYNTAX.md](SYNTAX.md)。
+
+## 许可
+
+本项目为武汉理工大学软件工程实训课程作业。游戏内容基于 Team Salvato 的 *Doki Doki Literature Club!*，仅供学习用途。
