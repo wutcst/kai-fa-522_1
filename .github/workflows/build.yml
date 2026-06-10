@@ -91,7 +91,10 @@ jobs:
             windows-${{ matrix.build_type }}-
 
       - name: Configure
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+        run: >
+            cmake -S . -B build
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 
       - name: Build
         run: cmake --build build --config ${{ matrix.build_type }} --parallel $env:NUMBER_OF_PROCESSORS
