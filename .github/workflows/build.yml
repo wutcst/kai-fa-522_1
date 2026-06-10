@@ -10,9 +10,6 @@ concurrency:
   group: build-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  CMAKE_POLICY_FLAGS: -DCMAKE_POLICY_VERSION_MINIMUM=3.5
-
 jobs:
   build-linux:
     name: Linux (${{ matrix.build_type }})
@@ -58,8 +55,8 @@ jobs:
       - name: Configure
         run: >
           cmake -S . -B build -G Ninja
-          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-          ${{ env.CMAKE_POLICY_FLAGS }}
+          "-DCMAKE_BUILD_TYPE=${{ matrix.build_type }}"
+          "-DCMAKE_POLICY_VERSION_MINIMUM=3.5"
 
       - name: Build
         run: cmake --build build --parallel $(nproc)
@@ -111,10 +108,11 @@ jobs:
             windows-${{ matrix.build_type }}-
 
       - name: Configure
+        shell: bash
         run: >
           cmake -S . -B build -G Ninja
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-          ${{ env.CMAKE_POLICY_FLAGS }}
+          -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 
       - name: Build
         run: cmake --build build --parallel $env:NUMBER_OF_PROCESSORS

@@ -8,9 +8,6 @@ on:
 permissions:
   contents: write
 
-env:
-  CMAKE_POLICY_FLAGS: -DCMAKE_POLICY_VERSION_MINIMUM=3.5
-
 jobs:
   bundle-linux:
     name: Bundle Linux
@@ -51,8 +48,8 @@ jobs:
       - name: Configure
         run: >
           cmake -S . -B build -G Ninja
-          -DCMAKE_BUILD_TYPE=Release
-          ${{ env.CMAKE_POLICY_FLAGS }}
+          "-DCMAKE_BUILD_TYPE=Release"
+          "-DCMAKE_POLICY_VERSION_MINIMUM=3.5"
 
       - name: Build
         run: cmake --build build --parallel $(nproc)
@@ -101,13 +98,14 @@ jobs:
           ninja --version
 
       - name: Configure
+        shell: bash
         run: >
           cmake -S . -B build -G Ninja
           -DCMAKE_BUILD_TYPE=Release
-          ${{ env.CMAKE_POLICY_FLAGS }}
+          -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 
       - name: Build
-        run: cmake --build build --parallel $env:NUMBER_OF_PROCESSORS
+        run: cmake --build build --config Release --parallel $env:NUMBER_OF_PROCESSORS
 
       - name: Assemble bundle
         shell: pwsh
