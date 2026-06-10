@@ -15,7 +15,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 if(MSVC)
-    add_compile_options(/utf-8 /EHsc)
+    add_compile_options($<$<COMPILE_LANGUAGE:C,CXX>:/utf-8> $<$<COMPILE_LANGUAGE:C,CXX>:/EHsc>)
     add_compile_definitions(NOMINMAX _CRT_SECURE_NO_WARNINGS)
 endif()
 
