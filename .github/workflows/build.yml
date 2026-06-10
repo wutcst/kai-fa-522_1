@@ -10,6 +10,9 @@ concurrency:
   group: build-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  CMAKE_POLICY_FLAGS: -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+
 jobs:
   build-linux:
     name: Linux (${{ matrix.build_type }})
@@ -38,6 +41,12 @@ jobs:
             libfreetype-dev libharfbuzz-dev \
             libgl1-mesa-dev libglu1-mesa-dev libegl1-mesa-dev
 
+      - name: Print tool versions
+        run: |
+          cmake --version
+          ninja --version
+          gcc --version | head -1
+
       - name: Cache CMake build
         uses: actions/cache@v4
         with:
@@ -47,7 +56,10 @@ jobs:
             linux-${{ matrix.build_type }}-
 
       - name: Configure
-        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+        run: >
+          cmake -S . -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          ${{ env.CMAKE_POLICY_FLAGS }}
 
       - name: Build
         run: cmake --build build --parallel $(nproc)
@@ -82,6 +94,14 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Set up MSVC environment
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Print tool versions
+        run: |
+          cmake --version
+          ninja --version
+
       - name: Cache CMake build
         uses: actions/cache@v4
         with:
@@ -92,19 +112,20 @@ jobs:
 
       - name: Configure
         run: >
-            cmake -S . -B build
-            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-            -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+          cmake -S . -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          ${{ env.CMAKE_POLICY_FLAGS }}
 
       - name: Build
-        run: cmake --build build --config ${{ matrix.build_type }} --parallel $env:NUMBER_OF_PROCESSORS
+        run: cmake --build build --parallel $env:NUMBER_OF_PROCESSORS
 
       - name: Verify executable
         shell: pwsh
         run: |
-          $exe = Get-ChildItem -Path build -Recurse -Filter "ddlc_afterstory.exe" | Select-Object -First 1
-          if (-not $exe) { Write-Error "Executable not found"; exit 1 }
-          Write-Host "Found: $($exe.FullName) ($([math]::Round($exe.Length / 1MB, 2)) MB)"
+          $exe = "build\bin\ddlc_afterstory.exe"
+          if (-not (Test-Path $exe)) { Write-Error "Executable not found at $exe"; exit 1 }
+          $info = Get-Item $exe
+          Write-Host "Found: $($info.FullName) ($([math]::Round($info.Length / 1MB, 2)) MB)"
 
       - name: Upload artifact
         if: matrix.build_type == 'Release'
@@ -112,7 +133,7 @@ jobs:
         with:
           name: ddlc-afterstory-windows
           path: |
-            build/bin/Release/ddlc_afterstory.exe
+            build/bin/ddlc_afterstory.exe
             content/
           retention-days: 14
 

@@ -8,6 +8,9 @@ on:
 permissions:
   contents: write
 
+env:
+  CMAKE_POLICY_FLAGS: -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+
 jobs:
   bundle-linux:
     name: Bundle Linux
@@ -40,8 +43,16 @@ jobs:
       - name: Install Pillow
         run: pip install Pillow
 
+      - name: Print tool versions
+        run: |
+          cmake --version
+          ninja --version
+
       - name: Configure
-        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+        run: >
+          cmake -S . -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          ${{ env.CMAKE_POLICY_FLAGS }}
 
       - name: Build
         run: cmake --build build --parallel $(nproc)
@@ -73,6 +84,9 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
+      - name: Set up MSVC environment
+        uses: ilammy/msvc-dev-cmd@v1
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -81,11 +95,19 @@ jobs:
       - name: Install Pillow
         run: pip install Pillow
 
+      - name: Print tool versions
+        run: |
+          cmake --version
+          ninja --version
+
       - name: Configure
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+        run: >
+          cmake -S . -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          ${{ env.CMAKE_POLICY_FLAGS }}
 
       - name: Build
-        run: cmake --build build --config Release --parallel $env:NUMBER_OF_PROCESSORS
+        run: cmake --build build --parallel $env:NUMBER_OF_PROCESSORS
 
       - name: Assemble bundle
         shell: pwsh
@@ -94,8 +116,7 @@ jobs:
           $bundleDir = "bundle\ddlc-$hash"
           New-Item -ItemType Directory -Path $bundleDir -Force | Out-Null
 
-          $exe = Get-ChildItem -Path build -Recurse -Filter "ddlc_afterstory.exe" | Select-Object -First 1
-          Copy-Item $exe.FullName -Destination $bundleDir
+          Copy-Item "build\bin\ddlc_afterstory.exe" -Destination $bundleDir
           Copy-Item -Path content -Destination "$bundleDir\content" -Recurse
           Set-Content -Path "$bundleDir\VERSION" -Value $hash
 

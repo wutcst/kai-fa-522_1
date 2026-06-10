@@ -1,13 +1,11 @@
 cmake_minimum_required(VERSION 3.14)
 
+# CMake 4.x compat: SDL2 submodules use old cmake_minimum_required (e.g. 3.0),
+# which CMake 4.0+ rejects. A cache variable ensures the policy floor is globally
+# visible to all add_subdirectory() scopes, including deeply nested ones.
 if(CMAKE_VERSION VERSION_GREATER_EQUAL "4.0")
-    # HACK: 注入一段宏代码：当任何子项目调用 project() 时，自动将最低策略版本设为 3.5
-    set(CMAKE_PROJECT_TOP_LEVEL_INJECTED_CODE [[
-        macro(ensure_policy_minimum)
-            set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
-        endmacro()
-        ensure_policy_minimum()
-    ]])
+    set(CMAKE_POLICY_VERSION_MINIMUM 3.5 CACHE STRING
+        "Minimum policy version for cmake_minimum_required (CMake 4.x compat)")
 endif()
 
 project(novel VERSION 1.0.0 LANGUAGES C CXX)
