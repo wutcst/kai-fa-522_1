@@ -14,12 +14,12 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-if(MSVC)
-    add_compile_options($<$<COMPILE_LANGUAGE:C,CXX>:/utf-8> $<$<COMPILE_LANGUAGE:C,CXX>:/EHsc>)
-    add_compile_definitions(NOMINMAX _CRT_SECURE_NO_WARNINGS)
-endif()
-
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+# ── Third-party dependencies ────────────────────────────────────────────
+# Added BEFORE project compile options so that /utf-8, /EHsc, NOMINMAX etc.
+# do NOT propagate into vendored code (avoids /utf-8 vs /source-charset
+# conflicts in libavif and NASM flag pollution in dav1d).
 
 # SDL2 from submodule
 set(SDL_SHARED OFF CACHE BOOL "" FORCE)
@@ -49,6 +49,13 @@ set(SDL2MIXER_MIDI OFF CACHE BOOL "" FORCE)
 set(SDL2MIXER_OPUS OFF CACHE BOOL "" FORCE)
 set(SDL2MIXER_WAVPACK OFF CACHE BOOL "" FORCE)
 add_subdirectory(third_party/SDL_mixer EXCLUDE_FROM_ALL)
+
+# ── Project compile options (engine & game only) ────────────────────────
+
+if(MSVC)
+    add_compile_options(/utf-8 /EHsc)
+    add_compile_definitions(NOMINMAX _CRT_SECURE_NO_WARNINGS)
+endif()
 
 add_subdirectory(engine)
 add_subdirectory(game)

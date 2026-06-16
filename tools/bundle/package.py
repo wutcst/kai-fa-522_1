@@ -53,7 +53,7 @@ def get_short_hash(project_root: Path) -> str:
     return "unknown"
 
 
-def detect_generator() -> str | None:
+def detect_generator():
     system = platform.system()
     if system == "Windows":
         if shutil.which("ninja"):
@@ -148,6 +148,7 @@ def main():
     cmake_cmd = [
         "cmake", "-S", str(project_root), "-B", str(build_dir),
         f"-DCMAKE_BUILD_TYPE={args.build_type}",
+        "-DCMAKE_POLICY_VERSION_MINIMUM=3.5",
     ]
     if generator:
         cmake_cmd += ["-G", generator]

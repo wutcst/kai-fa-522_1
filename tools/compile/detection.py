@@ -62,7 +62,7 @@ def find_project_root() -> Path:
     return Path(__file__).resolve().parent.parent.parent
 
 
-def run_cmd(cmd: list, cwd: str | None = None) -> tuple[int, str]:
+def run_cmd(cmd: list, cwd: str = None) -> tuple:
     try:
         result = subprocess.run(
             cmd, capture_output=True, text=True, timeout=15, cwd=cwd

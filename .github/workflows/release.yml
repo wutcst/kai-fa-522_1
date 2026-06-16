@@ -32,14 +32,6 @@ jobs:
             libfreetype-dev libharfbuzz-dev \
             libgl1-mesa-dev libglu1-mesa-dev libegl1-mesa-dev
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install Pillow
-        run: pip install Pillow
-
       - name: Print tool versions
         run: |
           cmake --version
@@ -84,14 +76,6 @@ jobs:
       - name: Set up MSVC environment
         uses: ilammy/msvc-dev-cmd@v1
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install Pillow
-        run: pip install Pillow
-
       - name: Print tool versions
         run: |
           cmake --version
@@ -105,7 +89,7 @@ jobs:
           -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 
       - name: Build
-        run: cmake --build build --config Release --parallel $env:NUMBER_OF_PROCESSORS
+        run: cmake --build build --parallel $env:NUMBER_OF_PROCESSORS
 
       - name: Assemble bundle
         shell: pwsh
@@ -118,7 +102,7 @@ jobs:
           Copy-Item -Path content -Destination "$bundleDir\content" -Recurse
           Set-Content -Path "$bundleDir\VERSION" -Value $hash
 
-          Compress-Archive -Path "$bundleDir\*" -DestinationPath "ddlc-afterstory-windows-$hash.zip"
+          Compress-Archive -Path $bundleDir -DestinationPath "ddlc-afterstory-windows-$hash.zip"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

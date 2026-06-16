@@ -38,10 +38,10 @@ Set-Location $ProjectRoot
 $Python = if ($env:PYTHON) { $env:PYTHON } else { "python" }
 $BuildDir = if ($env:BUILD_DIR) { $env:BUILD_DIR } else { "build" }
 $BuildType = if ($env:BUILD_TYPE) { $env:BUILD_TYPE } else { "Release" }
-$Jobs = if ($env:JOBS) { $env:JOBS } else {
-    (Get-CimInstance Win32_Processor -ErrorAction SilentlyContinue |
+$Jobs = if ($env:JOBS) { [int]$env:JOBS } else {
+    $count = (Get-CimInstance Win32_Processor -ErrorAction SilentlyContinue |
         Measure-Object -Property NumberOfLogicalProcessors -Sum).Sum
-    if (-not $?) { 2 }
+    if ($count -gt 0) { $count } else { 2 }
 }
 
 function Write-Header {
@@ -96,7 +96,7 @@ function Invoke-BuildContent {
 function Invoke-Build {
     Write-Host "Configuring CMake..." -ForegroundColor Cyan
 
-    $cmakeArgs = @("-S", ".", "-B", $BuildDir, "-DCMAKE_BUILD_TYPE=$BuildType")
+    $cmakeArgs = @("-S", ".", "-B", $BuildDir, "-DCMAKE_BUILD_TYPE=$BuildType", "-DCMAKE_POLICY_VERSION_MINIMUM=3.5")
 
     if (Get-Command ninja -ErrorAction SilentlyContinue) {
         $cmakeArgs += @("-G", "Ninja")

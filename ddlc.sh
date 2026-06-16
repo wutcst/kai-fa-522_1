@@ -81,6 +81,7 @@ cmd_build() {
 
     cmake -S . -B "$BUILD_DIR" \
         -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
+        -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
         $generator_flag
 
     echo -e "${CYAN}Building (${JOBS} jobs)...${NC}"
