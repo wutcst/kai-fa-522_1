@@ -144,7 +144,7 @@ Windows 下使用 Visual Studio 2019+ 即可，CMake 会自动配置 MSVC 编译
 - **存档 / 读档** — 内置存档槽位系统
 - **故障艺术** — `glitch` 指令（撕裂、噪点、反色等特效）
 
-完整语法参见 [SYNTAX.md](SYNTAX.md)。
+完整语法参见 [SYNTAX.md](assets/docs/SYNTAX.md)。
 
 ## 许可
 
